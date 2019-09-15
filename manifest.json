@@ -1,0 +1,29 @@
+  
+{
+    "manifest_version": 2,
+  
+    "name": "Did I Read This",
+    "description": "See if I read a book on ENYPL or Amazon",
+    "version": "1.1",
+    "icons": { "128": "icon_128.png"},
+    "browser_action": {
+      "default_icon": "icon_128.png"
+    },
+    "content_scripts": [
+      {
+        "matches": ["https://nypl.overdrive.com/media/*","https://www.amazon.com/*"],
+        "js": ["contentscript.js"],
+        "run_at":  "document_end"
+      }],
+    "permissions": [
+      "activeTab",
+      "storage",
+      "tabs",
+      "https://nypl.overdrive.com/media/*",
+      "https://www.amazon.com/*",
+      "https://www.goodreads.com/*"
+    ],
+    "background":{
+      "scripts": ["background_script.js"]
+    }
+  }
