@@ -10,35 +10,71 @@ PSEUDOCODE
 REFERENCES
 https://medium.com/@ssaitta13/recipal-a-first-chrome-extension-18c2848cf822
 https://github.com/rubenmv/extension-goodreads-ratings-for-amazon/blob/master/content.js
+https://github.com/ssaitta/ReciPal
 
 */
 var website = '';
 var parser = new DOMParser();
+var key = '8skO59XMpdv088mf68ehZQ';
+var gr_user_id = '23956770';
 
 
-function getBookID(asin) 
-{
-    var isbn = asin;
-    var key = '8skO59XMpdv088mf68ehZQ';
-    //var urlGoodreads = "https://www.goodreads.com/book/isbn/" + isbn + "?key=" + key;
-    
-    // his URL for script testing
-    //var urlGoodreads = "https://www.goodreads.com/book/isbn?isbn=" + asin;
-    var urlGoodreads = "https://www.goodreads.com/book/show/38614557-zero-sum-game";
-    console.log("Retrieving goodreads info from url: " + urlGoodreads);
-    chrome.runtime.sendMessage(
-    {
-        contentScriptQuery: "fetchHML",
-        url: urlGoodreads
-    }, data =>
-    {
+function checkMyShelf(gr_book_id) {
+
+    gr_book_id = gr_book_id;
+
+    var urlGoodreadsShelf =
+        "https://www.goodreads.com/review/show_by_user_and_book.xml?book_id=" + gr_book_id + "&key=" + key +
+        "&user_id=" + gr_user_id;
+    //https://www.goodreads.com/review/show_by_user_and_book.xml?book_id=50&key=8skO59XMpdv088mf68ehZQ&user_id=1
+    console.log(urlGoodreadsShelf);
+
+    chrome.runtime.sendMessage({
+        contentScriptQuery: "fetchHTML",
+        url: urlGoodreadsShelf
+    }, data => {
         //console.log(response.headers)
         let doc = parser.parseFromString(data, "text/html");
-        let meta = doc.querySelectorAll("title");
-        console.log("url data retrieved. meta selector: " + meta);
-        console.log('Goodreads title tag: ' + meta[0].textContent);
-      
-  });
+
+        let gr_rating = doc.querySelectorAll("rating")[0].textContent;
+
+        console.log('Goodreads rating: ' + gr_rating);
+
+        const div = document.createElement("div");
+        div.style.height = "30px";
+        div.style.background = "yellow"
+        div.textContent = "You rated this: " + gr_rating;
+        div.style.fontSize = "20px";
+        document.body.insertBefore(div, document.body.firstChild);
+
+    });
+
+}
+
+
+function getBookID(asin) {
+    var isbn = asin;
+    var urlGoodreads = "https://www.goodreads.com/book/isbn/" + isbn + "?key=" + key;
+    console.log("Retrieving goodreads info from url: " + urlGoodreads);
+    chrome.runtime.sendMessage({
+        contentScriptQuery: "fetchHTML",
+        url: urlGoodreads
+    }, data => {
+        //console.log(response.headers)
+        let doc = parser.parseFromString(data, "text/html");
+
+        let gr_title = doc.querySelectorAll("title");
+        gr_title = gr_title[0].textContent;
+
+        let gr_book_id = doc.querySelectorAll("best_book_id");
+        gr_book_id = gr_book_id[0].textContent;
+
+        console.log('Goodreads title tag: ' + gr_title);
+        console.log('Goodreads book ID: ' + gr_book_id);
+
+        checkMyShelf(gr_book_id);
+
+    });
 }
 
 
@@ -149,8 +185,7 @@ function getSite() {
         console.log('overdrive');
         console.log('not on right site');
         getISBNOverdrive();
-    } else {
-    }
+    } else {}
 
 }
 
