@@ -39,7 +39,7 @@ chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
     console.log('in addListener'); // doesn't fire
     if (request.contentScriptQuery == "fetchHtml")
-    {   chrome.tabs.create({'url': request.url}); // https://www.beautifulcode.co/blog/100-build-a-chrome-extension-in-5-steps
+    {   
         fetch(request.url, {mode: 'cors'})
             .then(response => response.text())
             .then(data => sendResponse(data))
@@ -50,5 +50,14 @@ chrome.runtime.onMessage.addListener(
             console.log('response.text()' + response.text());
         return true; // Will respond asynchronously.
     }
+
+    if (request.content_script = "openTab")
+
+    {   
+        
+      fullURL = url
+
+    }
+
 });
 

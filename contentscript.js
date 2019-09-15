@@ -56,12 +56,16 @@ function checkMyShelf(gr_book_id) {
 
 }
 
+function openURLTest (asin) {
+    
+}
+
 
 function getBookID(asin) {
     var isbn = asin;
     var urlGoodreads = "https://www.goodreads.com/book/isbn/" + isbn + "?key=" + key;
     console.log("Retrieving goodreads info from url: " + urlGoodreads);
-    
+
     chrome.runtime.sendMessage({
         contentScriptQuery: "fetchHTML",
         url: urlGoodreads
@@ -173,7 +177,8 @@ function getISBNAmazon() {
         return false;
     }
 
-    getBookID(asin);
+    openURLTest(asin);
+    //getBookID(asin);
 }
 
 
