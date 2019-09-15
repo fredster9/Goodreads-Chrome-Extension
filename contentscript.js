@@ -26,25 +26,30 @@ function checkMyShelf(gr_book_id) {
     var urlGoodreadsShelf =
         "https://www.goodreads.com/review/show_by_user_and_book.xml?book_id=" + gr_book_id + "&key=" + key +
         "&user_id=" + gr_user_id;
-    //https://www.goodreads.com/review/show_by_user_and_book.xml?book_id=50&key=8skO59XMpdv088mf68ehZQ&user_id=1
     console.log(urlGoodreadsShelf);
 
     chrome.runtime.sendMessage({
         contentScriptQuery: "fetchHTML",
         url: urlGoodreadsShelf
     }, data => {
-        //console.log(response.headers)
         let doc = parser.parseFromString(data, "text/html");
+        let gr_rating_check = doc.querySelectorAll("rating")[0];
 
-        let gr_rating = doc.querySelectorAll("rating")[0].textContent;
-
-        console.log('Goodreads rating: ' + gr_rating);
+        if (typeof gr_rating_check === 'undefined') {
+            console.log('either request failed (??) or not rated');
+            bar_text = 'No rating found';
+        } else {
+            let gr_rating = doc.querySelectorAll("rating")[0].textContent;
+            console.log('Goodreads rating: ' + gr_rating);
+            bar_text = 'Goodreads rating: ' + gr_rating;
+        }
 
         const div = document.createElement("div");
+        div.setAttribute("id", "testResults");
         div.style.height = "30px";
-        div.style.background = "yellow"
-        div.textContent = "You rated this: " + gr_rating;
-        div.style.fontSize = "20px";
+        div.style.background = "yellow";
+        div.textContent = bar_text;
+        div.style.fontSize = "18px";
         document.body.insertBefore(div, document.body.firstChild);
 
     });
@@ -56,18 +61,15 @@ function getBookID(asin) {
     var isbn = asin;
     var urlGoodreads = "https://www.goodreads.com/book/isbn/" + isbn + "?key=" + key;
     console.log("Retrieving goodreads info from url: " + urlGoodreads);
+    
     chrome.runtime.sendMessage({
         contentScriptQuery: "fetchHTML",
         url: urlGoodreads
     }, data => {
-        //console.log(response.headers)
+        console.log('data' + data);
         let doc = parser.parseFromString(data, "text/html");
-
-        let gr_title = doc.querySelectorAll("title");
-        gr_title = gr_title[0].textContent;
-
-        let gr_book_id = doc.querySelectorAll("best_book_id");
-        gr_book_id = gr_book_id[0].textContent;
+        let gr_title = doc.querySelectorAll("title")[0].textContent;
+        let gr_book_id = doc.querySelectorAll("best_book_id")[0].textContent;
 
         console.log('Goodreads title tag: ' + gr_title);
         console.log('Goodreads book ID: ' + gr_book_id);
@@ -177,6 +179,12 @@ function getISBNAmazon() {
 
 //delayed so that the async chrome.storage.sync.get() is completed first ??
 function getSite() {
+
+    // remove testResults if it exists -> is this ever used??
+    if (document.contains(document.getElementById("testResults"))) {
+            document.getElementById("submitbutton").remove();
+        }
+
 
     if (website === 'amazon') {
         console.log('amazon');
