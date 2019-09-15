@@ -56,11 +56,6 @@ function checkMyShelf(gr_book_id) {
 
 }
 
-function openURLTest (asin) {
-    
-}
-
-
 function getBookID(asin) {
     var isbn = asin;
     var urlGoodreads = "https://www.goodreads.com/book/isbn/" + isbn + "?key=" + key;
@@ -70,8 +65,9 @@ function getBookID(asin) {
         contentScriptQuery: "fetchHTML",
         url: urlGoodreads
     }, data => {
-        console.log('data' + data);
+        //console.log('data' + data);
         let doc = parser.parseFromString(data, "text/html");
+        console.log(doc);
         let gr_title = doc.querySelectorAll("title")[0].textContent;
         let gr_book_id = doc.querySelectorAll("best_book_id")[0].textContent;
 
@@ -85,10 +81,10 @@ function getBookID(asin) {
 
 
 /**
-
  * ISBN-10 to ISBN-13 conversor
  * http://www.dispersiondesign.com/articles/isbn/converting_isbn10_to_isbn13
  */
+
 function isbn10to13(isbn10) {
     log("isbn10to13 : isbn10 = " + isbn10);
     // Get every char into an array
@@ -177,8 +173,7 @@ function getISBNAmazon() {
         return false;
     }
 
-    openURLTest(asin);
-    //getBookID(asin);
+    getBookID(asin);
 }
 
 

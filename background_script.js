@@ -37,26 +37,28 @@ chrome.browserAction.onClicked.addListener(function(tab,url) {
   
 chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
-    console.log('in addListener'); // doesn't fire
-    if (request.contentScriptQuery == "fetchHtml")
+    console.log('in addListener'); 
+    // console.log('sender.url = ' + sender.url); // this is page it comes from
+    console.log('request.url = ' + request.url);
+    console.log('request.contentScriptQuery = ' + request.contentScriptQuery);
+
+    if (request.contentScriptQuery == "fetchHTML")
     {   
-        fetch(request.url, {mode: 'cors'})
-            .then(response => response.text())
-            .then(data => sendResponse(data))
-            .catch(error => sendResponse(error));
-            // none of these fire
-            console.log('before return true');
-            console.log('data' + data);
-            console.log('response.text()' + response.text());
-        return true; // Will respond asynchronously.
-    }
+        console.log('in fetchHtml block');
+        // fetch(request.url, {mode: 'cors'})
+        //     .then(response => response.text())
+        //     .then(data => sendResponse(data))
+        //     .catch(error => sendResponse(error));
+        // return true; // Will respond asynchronously.
 
-    if (request.content_script = "openTab")
-
-    {   
-        
-      fullURL = url
-
+        fetch(request.url)
+        .then(response=>response.text())
+        // .then(data => {
+        //   console.log(data);
+        // })
+        .then(data => sendResponse(data))
+        .catch(error => console.error(error));
+        return true;
     }
 
 });
