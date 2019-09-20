@@ -56,7 +56,7 @@ function checkMyShelf(gr_book_id) {
 
 }
 
-function getBookID(asin) {
+function getBookIDASIN(asin) {
     var isbn = asin;
     var urlGoodreads = "https://www.goodreads.com/book/isbn/" + isbn + "?key=" + key;
     console.log("Retrieving goodreads info from url: " + urlGoodreads);
@@ -173,27 +173,62 @@ function getISBNAmazon() {
         return false;
     }
 
-    getBookID(asin);
+    getBookIDASIN(asin);
 }
+
+function getBookIDfromISBN(overdriveISBN) {
+
+	var isbn = overdriveISBN;
+    var urlGoodreads = "https://www.goodreads.com/book/isbn/" + isbn + "?key=" + key;
+    console.log("Retrieving goodreads info from url: " + urlGoodreads);
+
+    chrome.runtime.sendMessage({
+        contentScriptQuery: "fetchHTML",
+        url: urlGoodreads
+    }, data => {
+        //console.log('data' + data);
+        let doc = parser.parseFromString(data, "text/html");
+        console.log(doc);
+        let gr_title = doc.querySelectorAll("title")[0].textContent;
+        let gr_book_id = doc.querySelectorAll("best_book_id")[0].textContent;
+
+        console.log('Goodreads title tag: ' + gr_title);
+        console.log('Goodreads book ID: ' + gr_book_id);
+
+        checkMyShelf(gr_book_id);
+
+    });
+
+}
+
+
+function getISBNOverdrive() {
+	console.log('in getISBNOverdrive');
+
+	let overdriveISBNelement = document.querySelectorAll("[aria-label^='ISBN']")[0].textContent
+	console.log('overdriveISBNelement ' + overdriveISBNelement)
+	var numberPattern = /\d+/g;
+	overdriveISBN = overdriveISBNelement.match(numberPattern);
+	console.log('overdriveISBN ' + overdriveISBN);
+
+	getBookIDfromISBN(overdriveISBN);
+}
+
+
 
 
 //delayed so that the async chrome.storage.sync.get() is completed first ??
 function getSite() {
-
-    // remove testResults if it exists -> is this ever used??
-    if (document.contains(document.getElementById("testResults"))) {
-            document.getElementById("submitbutton").remove();
-        }
-
 
     if (website === 'amazon') {
         console.log('amazon');
         getISBNAmazon();
     } else if (website === 'overdrive') {
         console.log('overdrive');
-        console.log('not on right site');
         getISBNOverdrive();
-    } else {}
+    } else {
+        console.log('not on right site');
+    }
 
 }
 
