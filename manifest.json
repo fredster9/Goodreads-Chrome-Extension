@@ -13,7 +13,7 @@
       {
         "matches": ["https://nypl.overdrive.com/media/*","https://www.amazon.com/*"],
         "js": ["contentscript.js"],
-        "run_at":  "document_end"
+        "run_at":  "document_idle"
       }],
     "permissions": [
       "activeTab",
