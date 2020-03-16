@@ -1,4 +1,11 @@
-/*
+/* 
+PSEUDOCODE
+[] Get the URL of the page
+[] Using that, extract the ISBN
+[] Send that to background_script to look up book_id
+[] Use book_id to do the user and book lookup
+[] Send flag back to content_script 
+[] Change pag accordingly
 
 REFERENCES
 https://medium.com/@ssaitta13/recipal-a-first-chrome-extension-18c2848cf822
@@ -8,119 +15,9 @@ https://github.com/ssaitta/ReciPal
 */
 var website = '';
 var parser = new DOMParser();
-var key = '8skO59XMpdv088mf68ehZQ'; // Goodreads API key unique to user
-var gr_user_id = '23956770'; // Goodreads ID unique to user
+var key = '8skO59XMpdv088mf68ehZQ';
+var gr_user_id = '23956770';
 
-
-// Checks Goodreads shelf using BookID 
-// When successful, posts div on top of page
-
-function checkAuthor(gr_author_id, gr_author_name) {
-	console.log ('in checkAuthor');
-	gr_author_id = gr_author_id;
-	gr_author_name = gr_author_name;
-
-	
-	// replace spaces in authors name to make search query	
-	var query_author_name = gr_author_name.replace(/ /g,'+').replace(/\./g,'');
-	console.log('query author name ' + query_author_name);
-
-	// first call to determine # of results
-	var pg_num = 1; // not really needed when querying author with enough per_page
-	var per_page = 50; // up to 200, 50 should be safe
-	// https://www.goodreads.com/review/list/23956770.xml?key=8skO59XMpdv088mf68ehZQ&sort=author&per_page=10&v=2
-	var urlGoodreadsAuthor = 
-        "https://www.goodreads.com/review/list/" + 
-        gr_user_id +
-        ".xml?" +
-        "key=" + key + 
-        "&search%5Bquery%5D=" + query_author_name + // the %5B and D are encoding for square brackets
-        "&sort=author" + // maybe not needed
-        "&per_page=" + per_page +
-        "&page=" + pg_num +
-        "&v=2";
-    console.log(urlGoodreadsAuthor);
-
-    // empty return object - a list of lists
-    var author_results = [];
-
-	 chrome.runtime.sendMessage({
-	    contentScriptQuery: "fetchHTML",
-	    url: urlGoodreadsAuthor
-	}, data => {
-	    let doc = parser.parseFromString(data, "text/html");
-
-	    const reviews = doc.querySelectorAll('review');
-
-	    for (let i = 0; i < reviews.length; i++) {
-	    	//console.log('review' + reviews[i].innerHTML);
-	    	auth_id = reviews[i].querySelectorAll('author id')[0].innerHTML;
-	    	console.log('author id ' + auth_id);
-
-	    	if (auth_id == gr_author_id) {
-
-	 			var title = reviews[i].querySelectorAll("title")[0].innerHTML;
-	 			var rating = reviews[i].querySelectorAll("rating")[0].innerHTML;
-	 			// below getElemntsByTagName works for 'id' but not 'link'
-	 			var book_url = reviews[i].getElementsByTagName("link");
-                var book_url_other = reviews[i].querySelectorAll("link")[0].innerHTML;
-                var book_url_other2 = reviews[i].querySelectorAll("link")[0].innerText;
-
-
-	 			console.log('title ' + title);
-	 			console.log('rating ' + rating);
-	 			console.log('url ' + book_url);
-	 			console.log('url length' + book_url.length);
-                console.log('url other' + book_url_other);
-                console.log('url other2' + book_url_other2);
-
-	 			var j;
-	 			for (j = 0; j < book_url.length; j++) {
-	 				console.log('book url ' + book_url[j].innerText);
-                    console.log('length' + book_url[j].length );
-	 			}
-
-	 			author_results.push([title, rating, book_url]);
-	 			//console.log('author results in loop ' + author_results);
-	    	}
-
-	    }
-
-	    //console.log('author_results out of loop ' + author_results);
-
-	    // append this info to div
-	    var current_div = document.getElementById('testResults');
-	    console.log('div contents' + current_div.innerHTML);
-	    var current_div_height = current_div.offsetHeight;
-
-
-	    if (author_results.length === 0) {
-
-	    	var text_content = "No other books read by this author";
-			console.log('text content ' + text_content);
-			var current_div_height = current_div.offsetHeight;
-			var new_current_div_height = 20;
-			current_div.style.height = new_current_div_height + 'px';
-			current_div.innerHTML += "<br>" + text_content;
-
-		} else {
-
-			var x;
-			for (x = 0; x < author_results.length; x++) {
-
-				var auth_content = author_results[x];
-				console.log('auth content ' + auth_content);
-				var current_div_height = current_div.offsetHeight;
-				var new_current_div_height = current_div_height + 20;
-				current_div.style.height = new_current_div_height + 'px';
-				current_div.innerHTML += "<br>" + auth_content;
-			}
-	    } 
-
-
-	});
-
-}
 
 function checkMyShelf(gr_book_id) {
 
@@ -136,8 +33,6 @@ function checkMyShelf(gr_book_id) {
         url: urlGoodreadsShelf
     }, data => {
         let doc = parser.parseFromString(data, "text/html");
-        
-        // get rating
         let gr_rating_check = doc.querySelectorAll("rating")[0];
 
         if (typeof gr_rating_check === 'undefined') {
@@ -146,35 +41,21 @@ function checkMyShelf(gr_book_id) {
         } else {
             let gr_rating = doc.querySelectorAll("rating")[0].textContent;
             console.log('Goodreads rating: ' + gr_rating);
-            bar_text = 'Goodreads rating for this book: ' + gr_rating;
+            bar_text = 'Goodreads rating: ' + gr_rating;
         }
-
-        // get author
-        let gr_author_id = doc.querySelectorAll("author id")[0].textContent;
-        let gr_author_name = doc.querySelectorAll("author name")[0].textContent;
-        console.log('author id: ' + gr_author_id);
-        console.log('author name: ' + gr_author_name);
 
         const div = document.createElement("div");
         div.setAttribute("id", "testResults");
-        div.style.height = "20px";
-        div.style.background = "LemonChiffon";
-        var para = document.createElement("p"); // used?
-        var text_content = document.createTextNode(bar_text);
-        para.style.fontSize = "14px";
+        div.style.height = "30px";
+        div.style.background = "yellow";
+        div.textContent = bar_text;
+        div.style.fontSize = "18px";
         document.body.insertBefore(div, document.body.firstChild);
-        testResults.appendChild(text_content);
-
-        // GO TO AUTHOR FUNCTIONS
-        checkAuthor(gr_author_id, gr_author_name);
 
     });
 
 }
 
-
-// Takes Amazon ASIN and checks Goodreads for book 
-// When successful goes to see if it's on Goodreads shelf
 function getBookIDASIN(asin) {
     var isbn = asin;
     var urlGoodreads = "https://www.goodreads.com/book/isbn/" + isbn + "?key=" + key;
@@ -198,9 +79,6 @@ function getBookIDASIN(asin) {
     });
 }
 
-
-// Code to get ASIN from Amazon
-// This all comes from https://github.com/rubenmv/extension-goodreads-ratings-for-amazon/blob/master/content.js
 
 /**
  * ISBN-10 to ISBN-13 conversor
@@ -259,8 +137,6 @@ function extractByTerm(searchTerm) {
 }
 
 
-// Gets ASIN from Amazon using one of the three methods above
-// When succcessful, goes to get BookID from Goodreads 
 function getISBNAmazon() {
 
     // Method 1
@@ -300,9 +176,6 @@ function getISBNAmazon() {
     getBookIDASIN(asin);
 }
 
-
-// Fetch Goodreads Book ID using the ISBN
-// When successful, goes to see if it's on the Goodreads shelf
 function getBookIDfromISBN(overdriveISBN) {
 
 	var isbn = overdriveISBN;
@@ -323,12 +196,12 @@ function getBookIDfromISBN(overdriveISBN) {
         console.log('Goodreads book ID: ' + gr_book_id);
 
         checkMyShelf(gr_book_id);
+
     });
+
 }
 
 
-// Extract the ISBN from OverDrive page
-// When successful, sends to function that gets Goodreads bookID using ISBN
 function getISBNOverdrive() {
 	console.log('in getISBNOverdrive');
 
@@ -342,8 +215,9 @@ function getISBNOverdrive() {
 }
 
 
-// Checks website and only runs on Amazon or NYPL ebooks library
-// TODO: except hoopla, bookbub, and others using the same Amazon info?
+
+
+//delayed so that the async chrome.storage.sync.get() is completed first ??
 function getSite() {
 
     if (website === 'amazon') {
@@ -358,7 +232,7 @@ function getSite() {
 
 }
 
-// Use the async API chrome.storage to retreive the url from the backgorund script. 
+//use the async API chrome.storage to retreive the url from the backgorund script. 
 chrome.storage.sync.get('url', (obj) => {
     let url = obj.url;
     if (url.indexOf('amazon') !== -1) {
