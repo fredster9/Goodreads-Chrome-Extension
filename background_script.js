@@ -1,15 +1,3 @@
-/* 
-PSEUDOCODE
-[] Get the URL of the page
-[] Using that, extract the ISBN
-[] Send that to background_script to look up book_id
-[] Use book_id to do the user and book lookup
-[] Send flag back to content_script 
-[] Change pag accordingly
-*/
-
-//Utility function for getting the current url taken from the chrome getting started tutorial
-
 //Utility function for getting the current url taken from the chrome getting started tutorial
 function getCurrentTabUrl(callback) {
   var queryInfo = {
@@ -37,6 +25,7 @@ chrome.browserAction.onClicked.addListener(function(tab,url) {
   
 chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
+
     console.log('in addListener'); 
     // console.log('sender.url = ' + sender.url); // this is page it comes from
     console.log('request.url = ' + request.url);
@@ -58,7 +47,7 @@ chrome.runtime.onMessage.addListener(
         // })
         .then(data => sendResponse(data))
         .catch(error => console.error(error));
-        return true;
+        //return true;  // this makes it async
     }
 
 });
