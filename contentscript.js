@@ -376,42 +376,36 @@ function checkAuthor(gr_author_id, gr_author_name, gr_book_id) {
     function fetchNYPL(gr_to_read) {
         console.log('in fetchNYPL');
 
+        new_response = [];
+
         for (var r in gr_to_read) {
-            console.log('in fetchNYPL for loop');
+            //console.log('in fetchNYPL for loop');
             
             urlNYPL = gr_to_read[r][3];
+            book_data = gr_to_read[r];
 
             chrome.runtime.sendMessage({
-                contentScriptQuery: "fetchHTML",
-                url: urlNYPL
+                contentScriptQuery: "queryNPL",
+                url: urlNYPL,
+                book_data: gr_to_read[r]
             }, data => {
 
                 console.log(" in data part of fetchHTML");
-                console.log("in fetch url: " + urlNYPL);
+                console.log('background response: ' + data);
 
-                let doc = parser.parseFromString(data, "text/html");
-                //console.log("doc title " + doc.title);
-                
-                const no_results = doc.getElementsByTagName("h1")[0]; // this seems fragile, but works for now, only no results has
+                gr_to_read[r] = data;
 
-                if(typeof no_results == "undefined") {
-                    console.log("we might have results for " + gr_to_read[r][1] + " at " + doc.title );
-                    gr_to_read[r].push('ebook maybe', 'audiobook maybe');
-                } else {
-                    console.log("no results found for " + gr_to_read[r][1] + " at " + doc.title);
-                    gr_to_read[r].push('ebook no', 'audiobook no');
-                }
+                new_response.push(book_data);
 
             });
 
         }
 
-        // for (var r in gr_to_read) {
-        //     console.log('FULL ARRAY ' + gr_to_read[r]);
-        // }
+        console.log('new response: ' + new_response);
+
     }
 
-    function queryNYPL(gr_to_read) {
+    function makeurlNYPL(gr_to_read) {
         // gr_to_read is list of lists, [isbn, author, title, NYPL url, ebook avail, audio avail]
 
         console.log('in queryNYPL');
@@ -437,38 +431,10 @@ function checkAuthor(gr_author_id, gr_author_name, gr_book_id) {
             console.log('urlNYPL: ' + urlNYPL);
             gr_to_read[i].push(urlNYPL);
 
-            // convoluted because this won't act like a normal loop
-         
-
-            // chrome.runtime.sendMessage({
-            //     contentScriptQuery: "fetchHTML",
-            //     url: urlNYPL
-            // }, data => {
-
-            //     console.log(" in data part of fetchHTML");
-            //     console.log("in fetch url: " + urlNYPL);
-
-            //     let doc = parser.parseFromString(data, "text/html");
-            //     //console.log("doc title " + doc.title);
-                
-            //     const no_results = doc.getElementsByTagName("h1")[0]; // this seems fragile, but works for now, only no results has
-
-            //     if(typeof no_results == "undefined") {
-            //         console.log("we might have results for " + url_title + " at " + doc.title );
-            //         gr_to_read[i].push('ebook maybe', 'audiobook maybe');
-            //     } else {
-            //         console.log("no results found for " + url_title + " at " + doc.title);
-            //         gr_to_read[i].push('ebook no', 'audiobook no');
-            //     }
-
-            //     console.log("full array " + gr_to_read[i]);
-
-            // });
-
         }
 
         for (var r in gr_to_read) {
-            console.log('gr_to_read sholud have urls: ' + gr_to_read[r]);
+            console.log('gr_to_read w urls: ' + gr_to_read[r]);
         }
         
         fetchNYPL(gr_to_read);
@@ -517,7 +483,7 @@ function checkAuthor(gr_author_id, gr_author_name, gr_book_id) {
         //console.log("without isbn: " + without_isbn); // 11/37 - 30% - don't have ISBN
         // console.log('gr_to_read_ list: ' + gr_to_read);
 
-        queryNYPL(gr_to_read);
+        makeurlNYPL(gr_to_read);
 
     }
 
