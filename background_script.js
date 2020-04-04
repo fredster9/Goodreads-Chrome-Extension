@@ -66,7 +66,8 @@ chrome.runtime.onMessage.addListener(
           book_data = request.book_data;
 
           let doc = parser.parseFromString(data, "text/html");
-          // console.log('doc.title ' + doc.title);
+
+          //console.log('doc.title ' + doc.title);
           title = doc.title.replace("Search results for ", "");
           title = title.replace(" - New York Public Library - OverDrive", "");
           console.log('title ' + title);
@@ -75,27 +76,68 @@ chrome.runtime.onMessage.addListener(
           console.log('no results (h1): ' + no_results);
 
           if(typeof no_results == "undefined") {
+              //console.log('doc.body: ' + doc.body.innerHTML);
               //console.log("we might have results for " + gr_to_read[r][1] + " at " + doc.title );
-              book_data.push('ebook maybe', 'audiobook maybe');
-          } else {
-              //console.log("no results found for " + gr_to_read[r][1] + " at " + doc.title);
               
               var od_obj = doc.getElementsByTagName("script")[0].innerText;
-              console.log('overdrive_obj ' + od_obj);
-              console.log('typeof ' + typeof od_obj);
+              //console.log('script: ' + od_obj);
+
+              var mediaItemsRe = /(mediaItems = )(.*?)(}};)/s; // seems somewhat fragile but thunderhost line break is pain
+              var mediaItems = mediaItemsRe.exec(od_obj)[0];
+              // cuz regx not great
+              mediaItems = mediaItems.replace("mediaItems = ","");
+              mediaItems = mediaItems.replace("}};", "}}");
+              //console.log('mediaItems: '+ mediaItems);
+
+              var medItemsObj = JSON.parse(mediaItems);
+
+              book_result_url_base = "https://nypl.overdrive.com/media/";
               
-              // var med_beg = 'OverDrive.mediaItems = { \"';
-              // var med_end = ':';
-              // var myRe = new RegExp(med_beg + "(.*)" + med_end);             
+              for (var key in medItemsObj) {
+                if (medItemsObj.hasOwnProperty(key)) {
+                    console.log(key + " -> " + medItemsObj[key]);
 
-              var medIDre = /(mediaItems = {)(.*?)(?=:)/;
-              var result = medIDre.exec(od_obj);
-              //var result = od_obj.match(medIDre);
-              console.log('result ' + result);
+                    var book_result_url = book_result_url_base + key;
+                    console.log('media URL: ' + book_result_url);
 
+                    avail = medItemsObj[key].isAvailable;
+                    console.log('is available: ' + avail);
 
+                    var ownedCopies = medItemsObj[key].ownedCopies;
+                    console.log('ownedCopies ' + ownedCopies);
 
-              //book_data.push('ebook no', 'audiobook no');
+                    var pplWaiting = medItemsObj[key].holdsCount;
+                    console.log('pplWaiting ' + pplWaiting);
+
+                    var estWaitDays = medItemsObj[key].estimatedWaitDays;
+                    console.log('estWaitDays ' + estWaitDays);
+
+                    formats = [];
+
+                    for (var f in medItemsObj[key].formats) {
+                      //console.log('format: ' + medItemsObj[key].formats[f].name);
+                      formats.push(medItemsObj[key].formats[f].name);
+                    }
+                    
+                    console.log('formats' + formats);
+
+                    var formatType = "";
+
+                    if (formats.includes("audiobook")) {
+                      formatType = "audibook";
+                    } else {
+                      formatType = "ebook";
+                    }
+
+                    book_data.push(book_result_url, avail, ownedCopies, pplWaiting, estWaitDays, formatType);
+
+                }
+              }
+
+          
+          } else {
+              console.log("no results found for " + gr_to_read[r][1] + " at " + doc.title);
+              book_data.push('ebook no', 'audiobook no');
 
           }
 

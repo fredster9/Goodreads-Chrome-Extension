@@ -14,6 +14,17 @@ var parser = new DOMParser();
 var key = '8skO59XMpdv088mf68ehZQ'; // Goodreads API key unique to user
 var gr_user_id = '23956770'; // Goodreads ID unique to user
 var gr_to_read = []; // empty return object - a list of lists
+var gr_to_read_obj = {
+    isbn: "",
+    author: "",
+    title: "",
+    searchURL: "",
+    bookURL: "",
+    formatType: "",
+    available: "",
+    pplWaiting: "",
+    estWaitDays: ""
+};
 
 
 // https://www.goodreads.com/review/show_by_user_and_book.xml?book_id=42112733&key=8skO59XMpdv088mf68ehZQ&user_id=23956770
@@ -368,10 +379,6 @@ function checkAuthor(gr_author_id, gr_author_name, gr_book_id) {
     }
 
     ///// GOODREADS CHECK TO READ IS AVAIL ON NYPL /////
-    
-    function wtf() {
-        console.log ("IN WTF");
-    }
 
     function fetchNYPL(gr_to_read) {
         console.log('in fetchNYPL');
@@ -391,7 +398,7 @@ function checkAuthor(gr_author_id, gr_author_name, gr_book_id) {
             }, data => {
 
                 console.log(" in data part of fetchHTML");
-                console.log('background response: ' + data);
+                console.log('background gr_to_read: ' + data);
 
                 gr_to_read[r] = data;
 
@@ -406,14 +413,14 @@ function checkAuthor(gr_author_id, gr_author_name, gr_book_id) {
     }
 
     function makeurlNYPL(gr_to_read) {
-        // gr_to_read is list of lists, [isbn, author, title, NYPL url, ebook avail, audio avail]
+    // gr_to_read is list of lists, [isbn, author, title, NYPL url, ebook avail, audio avail, ppl waiting, est wait days]
 
         console.log('in queryNYPL');
 
         var nypl_url_base = 'https://nypl.overdrive.com/search/title?query=';  // https://nypl.overdrive.com/search/title?query=speedboat&creator=renata+adler
         
         for (let i = 0; i < gr_to_read.length; i++) {
-            console.log('gr_to_read loop, pos ' + i); //+ ' : ' + gr_to_read[i]);
+            //console.log('gr_to_read loop, pos ' + i); //+ ' : ' + gr_to_read[i]);
 
             // replace spaces with +
             // because author format is 'last, first' use only last
@@ -428,13 +435,14 @@ function checkAuthor(gr_author_id, gr_author_name, gr_book_id) {
             // console.log('url_title: ' + url_title);
 
             urlNYPL = nypl_url_base + url_title + "&creator=" + url_author;
-            console.log('urlNYPL: ' + urlNYPL);
+            //console.log('urlNYPL: ' + urlNYPL);
             gr_to_read[i].push(urlNYPL);
+            gr_to_read_obj.searchURL = urlNYPL;
 
         }
 
         for (var r in gr_to_read) {
-            console.log('gr_to_read w urls: ' + gr_to_read[r]);
+            //console.log('gr_to_read w urls: ' + gr_to_read[r]);
         }
         
         fetchNYPL(gr_to_read);
