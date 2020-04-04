@@ -14,17 +14,6 @@ var parser = new DOMParser();
 var key = '8skO59XMpdv088mf68ehZQ'; // Goodreads API key unique to user
 var gr_user_id = '23956770'; // Goodreads ID unique to user
 var gr_to_read = []; // empty return object - a list of lists
-var gr_to_read_obj = {
-    isbn: "",
-    author: "",
-    title: "",
-    searchURL: "",
-    bookURL: "",
-    formatType: "",
-    available: "",
-    pplWaiting: "",
-    estWaitDays: ""
-};
 
 
 // https://www.goodreads.com/review/show_by_user_and_book.xml?book_id=42112733&key=8skO59XMpdv088mf68ehZQ&user_id=23956770
@@ -385,6 +374,9 @@ function checkAuthor(gr_author_id, gr_author_name, gr_book_id) {
 
         new_response = [];
 
+        gr_to_read_len = gr_to_read.length - 1;
+        console.log('gr_to_read_len' + gr_to_read_len);
+
         for (var r in gr_to_read) {
             //console.log('in fetchNYPL for loop');
             
@@ -400,15 +392,24 @@ function checkAuthor(gr_author_id, gr_author_name, gr_book_id) {
                 console.log(" in data part of fetchHTML");
                 console.log('background gr_to_read: ' + data);
 
+                console.log('gr_to_read_obj returned' + JSON.stringify(data, null, 4));
+
                 gr_to_read[r] = data;
 
-                new_response.push(book_data);
+                //new_response.push(book_data);
 
             });
 
+            console.log('gr_to_read[r]' + gr_to_read[r]);
+            if (gr_to_read[r] == gr_to_read_len) {
+                console.log('NEW FUNCTION TIME');
+            }
+
         }
 
-        console.log('new response: ' + new_response);
+
+        console.log('new response: ' + new_response); // empty
+        console.log('gr_to_read after background ' + gr_to_read);
 
     }
 
@@ -416,6 +417,9 @@ function checkAuthor(gr_author_id, gr_author_name, gr_book_id) {
     // gr_to_read is list of lists, [isbn, author, title, NYPL url, ebook avail, audio avail, ppl waiting, est wait days]
 
         console.log('in queryNYPL');
+
+        //console.log('gr_to_read_obj' + JSON.stringify(gr_to_read_obj, null, 4));
+
 
         var nypl_url_base = 'https://nypl.overdrive.com/search/title?query=';  // https://nypl.overdrive.com/search/title?query=speedboat&creator=renata+adler
         
@@ -437,12 +441,7 @@ function checkAuthor(gr_author_id, gr_author_name, gr_book_id) {
             urlNYPL = nypl_url_base + url_title + "&creator=" + url_author;
             //console.log('urlNYPL: ' + urlNYPL);
             gr_to_read[i].push(urlNYPL);
-            gr_to_read_obj.searchURL = urlNYPL;
 
-        }
-
-        for (var r in gr_to_read) {
-            //console.log('gr_to_read w urls: ' + gr_to_read[r]);
         }
         
         fetchNYPL(gr_to_read);
@@ -454,8 +453,6 @@ function checkAuthor(gr_author_id, gr_author_name, gr_book_id) {
         var books = document.getElementsByClassName('bookalike review');
         //console.log('book alike ' + books.innerHTML);
 
-        // empty return object - a list of lists
-        //var gr_to_read = [];
         var without_isbn = 0;
   
 
@@ -485,12 +482,12 @@ function checkAuthor(gr_author_id, gr_author_name, gr_book_id) {
             } 
             
             gr_to_read.push([gr_isbn, author, title]);
+
             //console.log('book # ' + i + ': ' + gr_isbn);
         }
 
         //console.log("without isbn: " + without_isbn); // 11/37 - 30% - don't have ISBN
         // console.log('gr_to_read_ list: ' + gr_to_read);
-
         makeurlNYPL(gr_to_read);
 
     }

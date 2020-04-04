@@ -47,6 +47,7 @@ chrome.runtime.onMessage.addListener(
     var queryNYPLresponse = []; // doc.title extact, ebook avail, audio avail
 
     if (request.contentScriptQuery == "fetchHTML") {   
+        
         console.log('in fetchHtml');
         fetch(request.url)
         .then(response=>response.text())
@@ -56,6 +57,7 @@ chrome.runtime.onMessage.addListener(
     }
 
     else if (requestQuery.includes("query") === true) { // not sure why doesnt' work with above code
+        
         console.log('in queryNYPL');
         console.log('book data: ' + request.book_data);
 
@@ -77,7 +79,6 @@ chrome.runtime.onMessage.addListener(
 
           if(typeof no_results == "undefined") {
               //console.log('doc.body: ' + doc.body.innerHTML);
-              //console.log("we might have results for " + gr_to_read[r][1] + " at " + doc.title );
               
               var od_obj = doc.getElementsByTagName("script")[0].innerText;
               //console.log('script: ' + od_obj);
@@ -98,38 +99,43 @@ chrome.runtime.onMessage.addListener(
                     console.log(key + " -> " + medItemsObj[key]);
 
                     var book_result_url = book_result_url_base + key;
-                    console.log('media URL: ' + book_result_url);
-
-                    avail = medItemsObj[key].isAvailable;
-                    console.log('is available: ' + avail);
-
+                    var avail = medItemsObj[key].isAvailable;
                     var ownedCopies = medItemsObj[key].ownedCopies;
-                    console.log('ownedCopies ' + ownedCopies);
-
                     var pplWaiting = medItemsObj[key].holdsCount;
-                    console.log('pplWaiting ' + pplWaiting);
-
                     var estWaitDays = medItemsObj[key].estimatedWaitDays;
-                    console.log('estWaitDays ' + estWaitDays);
 
                     formats = [];
-
                     for (var f in medItemsObj[key].formats) {
                       //console.log('format: ' + medItemsObj[key].formats[f].name);
                       formats.push(medItemsObj[key].formats[f].name);
                     }
                     
-                    console.log('formats' + formats);
-
                     var formatType = "";
 
+                    // could prob build into format type
                     if (formats.includes("audiobook")) {
                       formatType = "audibook";
                     } else {
                       formatType = "ebook";
                     }
 
-                    book_data.push(book_result_url, avail, ownedCopies, pplWaiting, estWaitDays, formatType);
+                    //console.log("book data " + book_data);
+
+                    var gr_to_read_obj = {
+                      isbn: book_data[0],
+                      author: book_data[1],
+                      title: book_data[2],
+                      searchURL: book_data[3],
+                      bookURL: book_result_url,
+                      formatType: formatType,
+                      available: avail,
+                      pplWaiting: pplWaiting,
+                      estWaitDays: estWaitDays
+                  };
+
+                    //book_data.push(book_result_url, avail, ownedCopies, pplWaiting, estWaitDays, formatType);
+                    // book_data.push(gr_to_read_obj);
+                    book_data = gr_to_read_obj;
 
                 }
               }
