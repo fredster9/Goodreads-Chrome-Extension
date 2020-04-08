@@ -14,6 +14,8 @@ var parser = new DOMParser();
 var key = '8skO59XMpdv088mf68ehZQ'; // Goodreads API key unique to user
 var gr_user_id = '23956770'; // Goodreads ID unique to user
 var gr_to_read = []; // empty return object - a list of lists
+var gr_to_read_array = []; // list of obj
+var gr_final_obj;
 
 
 // https://www.goodreads.com/review/show_by_user_and_book.xml?book_id=42112733&key=8skO59XMpdv088mf68ehZQ&user_id=23956770
@@ -352,7 +354,6 @@ function checkAuthor(gr_author_id, gr_author_name, gr_book_id) {
         });
     }
 
-
     // Extract the ISBN from OverDrive page
     // When successful, sends to function that gets Goodreads bookID using ISBN
     function getISBNOverdrive() {
@@ -371,60 +372,49 @@ function checkAuthor(gr_author_id, gr_author_name, gr_book_id) {
 
     function fetchNYPL(gr_to_read) {
         console.log('in fetchNYPL');
+        
+        for (var i = 0; i < gr_to_read.length; i++) {
+            console.log('in fetch NYPL loop' + i);
+            //     gr_to_read_array.push(data);
+            //     console.log('gr_to_read array IN LOOP: ' + gr_to_read_array);
+            // }
 
-        new_response = [];
-
-        gr_to_read_len = gr_to_read.length - 1;
-        console.log('gr_to_read_len' + gr_to_read_len);
-
-        for (var r in gr_to_read) {
-            //console.log('in fetchNYPL for loop');
+            //console.log('gr_to_read[i]' + gr_to_read[i]);
             
-            urlNYPL = gr_to_read[r][3];
-            book_data = gr_to_read[r];
+            urlNYPL = gr_to_read[i][3];
+            book_data = gr_to_read[i];
 
             chrome.runtime.sendMessage({
                 contentScriptQuery: "queryNPL",
                 url: urlNYPL,
-                book_data: gr_to_read[r]
+                book_data: gr_to_read
             }, data => {
 
                 console.log(" in data part of fetchHTML");
-                console.log('background gr_to_read: ' + data);
-
+                //console.log('background gr_to_read: ' + data);
                 console.log('gr_to_read_obj returned' + JSON.stringify(data, null, 4));
-
-                gr_to_read[r] = data;
-
-                //new_response.push(book_data);
+                gr_to_read_array.push(data);
+                //return gr_to_read_array;
+                console.log('array in for loop' + gr_to_read_array);
+  
 
             });
-
-            console.log('gr_to_read[r]' + gr_to_read[r]);
-            if (gr_to_read[r] == gr_to_read_len) {
-                console.log('NEW FUNCTION TIME');
-            }
-
+            
         }
 
-
-        console.log('new response: ' + new_response); // empty
-        console.log('gr_to_read after background ' + gr_to_read);
-
+        console.log('gr array outside for loop' + gr_to_read_array);
     }
 
-    function makeurlNYPL(gr_to_read) {
+    
+        function makeurlNYPL(gr_to_read) {
     // gr_to_read is list of lists, [isbn, author, title, NYPL url, ebook avail, audio avail, ppl waiting, est wait days]
 
         console.log('in queryNYPL');
 
-        //console.log('gr_to_read_obj' + JSON.stringify(gr_to_read_obj, null, 4));
-
-
         var nypl_url_base = 'https://nypl.overdrive.com/search/title?query=';  // https://nypl.overdrive.com/search/title?query=speedboat&creator=renata+adler
         
-        for (let i = 0; i < gr_to_read.length; i++) {
-            //console.log('gr_to_read loop, pos ' + i); //+ ' : ' + gr_to_read[i]);
+        for (var i = 0; i < gr_to_read.length; i++) {
+            console.log('gr_to_read loop, pos ' + i); //+ ' : ' + gr_to_read[i]);
 
             // replace spaces with +
             // because author format is 'last, first' use only last
@@ -434,7 +424,6 @@ function checkAuthor(gr_author_id, gr_author_name, gr_book_id) {
             var url_title = gr_to_read[i][2].split('(')[0];
             url_title = url_title.split(':')[0];
             url_title = url_title.replace(/ /g, '+').replace(/\./g, '');
-
             // console.log('url_author: ' + url_author);
             // console.log('url_title: ' + url_title);
 
@@ -443,18 +432,43 @@ function checkAuthor(gr_author_id, gr_author_name, gr_book_id) {
             gr_to_read[i].push(urlNYPL);
 
         }
-        
-        fetchNYPL(gr_to_read);
+
+        // var promises = [];
+
+        // for (var i = 0; i < gr_to_read.length; i++) {
+        //     console.log('in go fetch loop' + i);
+        //     promises.push(fetchNYPL(gr_to_read[i]));
+
+        // }
+
+        // Promise.all(promises)
+        // .then(function() {
+        //     gr_to_read_array.push(data);
+        //     console.log('in function push'); // NOT GETTING HERE
+        // }).then(function() {
+        //     console.log('FINAL ANSWER' + gr_to_read_array);
+        // }) //;
+        // .catch(function(err) {
+        // console.log('promise error'); // IS GETTING HERE
+        // });
+
+        asyncFetch(gr_to_read);
     }
-    
+
+    async function asyncFetch(gr_to_read) {
+        gr_final = await fetchNYPL(gr_to_read);
+        console.log('FINAL RESULTS' + gr_final);
+    }
+
+
+    ////
 
     function parseToRead() {
         console.log('in parseToRead');
         var books = document.getElementsByClassName('bookalike review');
-        //console.log('book alike ' + books.innerHTML);
+        //console.log('book alike ' + books.innerHTML);  
 
         var without_isbn = 0;
-  
 
         for (let i = 0; i < books.length; i++) {
             // console.log('books id ' + books[i].id);
@@ -468,7 +482,7 @@ function checkAuthor(gr_author_id, gr_author_name, gr_book_id) {
             // console.log('author: ' + author);
 
             var isbn_row = books[i].getElementsByClassName('field isbn')[0];
-            var gr_isbn = isbn_row.querySelectorAll("div.value")[0].innerText;
+            var gr_isbn = isbn_row.querySelectorAll("div.value")[0].innerText.trim();
             // console.log('isbn length ' + isbn.length);
             // console.log('isbn: ' + isbn);
 
@@ -482,7 +496,6 @@ function checkAuthor(gr_author_id, gr_author_name, gr_book_id) {
             } 
             
             gr_to_read.push([gr_isbn, author, title]);
-
             //console.log('book # ' + i + ': ' + gr_isbn);
         }
 

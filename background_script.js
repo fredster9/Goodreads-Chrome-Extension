@@ -1,4 +1,5 @@
 var parser = new DOMParser();
+var book_result_url = "";
 
 //Utility function for getting the current url taken from the chrome getting started tutorial
 function getCurrentTabUrl(callback) {
@@ -36,10 +37,10 @@ function parseNYPL(response) {
 chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
 
-    console.log('in addListener'); 
+    //console.log('in addListener'); 
     //console.log('sender.url = ' + sender.url); // this is page it comes from
     // console.log('request.url = ' + request.url);
-    console.log('request.contentScriptQuery = ' + request.contentScriptQuery);
+    //console.log('request.contentScriptQuery = ' + request.contentScriptQuery);
 
     var requestQuery = request.contentScriptQuery;
     // console.log('request query ' + requestQuery);
@@ -58,14 +59,15 @@ chrome.runtime.onMessage.addListener(
 
     else if (requestQuery.includes("query") === true) { // not sure why doesnt' work with above code
         
-        console.log('in queryNYPL');
-        console.log('book data: ' + request.book_data);
+        //console.log('in queryNYPL');
+        //console.log('book data: ' + request.book_data);
 
         fetch(request.url)
         .then(response=>response.text())
         .then(function(data) {
           //console.log('in function data');
           book_data = request.book_data;
+          console.log('book data ' + book_data);
 
           let doc = parser.parseFromString(data, "text/html");
 
@@ -75,7 +77,15 @@ chrome.runtime.onMessage.addListener(
           console.log('title ' + title);
             
           const no_results = doc.getElementsByTagName("h1")[0]; // this seems fragile, but works for now, only no results has
-          console.log('no results (h1): ' + no_results);
+          console.log('no results (h1) - ergo, we have book results: ' + no_results);
+
+          // create empty
+          gr_to_read_obj = {
+                  isbn: book_data[0], // not using but more work to remove
+                  author: book_data[1],
+                  title: book_data[2],
+                  searchURL: book_data[3],
+              };
 
           if(typeof no_results == "undefined") {
               //console.log('doc.body: ' + doc.body.innerHTML);
@@ -98,55 +108,59 @@ chrome.runtime.onMessage.addListener(
                 if (medItemsObj.hasOwnProperty(key)) {
                     console.log(key + " -> " + medItemsObj[key]);
 
-                    var book_result_url = book_result_url_base + key;
+                    book_result_url = book_result_url_base + key;
                     var avail = medItemsObj[key].isAvailable;
                     var ownedCopies = medItemsObj[key].ownedCopies;
                     var pplWaiting = medItemsObj[key].holdsCount;
                     var estWaitDays = medItemsObj[key].estimatedWaitDays;
 
-                    formats = [];
+                    var formats = [];
                     for (var f in medItemsObj[key].formats) {
-                      //console.log('format: ' + medItemsObj[key].formats[f].name);
+                      console.log('format: ' + medItemsObj[key].formats[f].name);
                       formats.push(medItemsObj[key].formats[f].name);
                     }
                     
-                    var formatType = "";
+                    formats = formats.join(' ');
+                    console.log('flattened formats ' + formats);
 
-                    // could prob build into format type
+
+                    // this only works for two results
+                    
                     if (formats.includes("audiobook")) {
-                      formatType = "audibook";
+                      console.log('in audiobook');
+                       Object.assign(gr_to_read_obj, {
+                        a_bookURL: book_result_url,
+                        a_available: avail,
+                        a_pplWaiting: pplWaiting,
+                        a_estWaitDays: estWaitDays
+                      });
+
                     } else {
-                      formatType = "ebook";
+                      console.log('in ebook');
+                       Object.assign(gr_to_read_obj, {
+                        e_bookURL: book_result_url,
+                        e_available: avail,
+                        e_pplWaiting: pplWaiting,
+                        e_estWaitDays: estWaitDays
+                      });
                     }
-
-                    //console.log("book data " + book_data);
-
-                    var gr_to_read_obj = {
-                      isbn: book_data[0],
-                      author: book_data[1],
-                      title: book_data[2],
-                      searchURL: book_data[3],
-                      bookURL: book_result_url,
-                      formatType: formatType,
-                      available: avail,
-                      pplWaiting: pplWaiting,
-                      estWaitDays: estWaitDays
-                  };
-
-                    //book_data.push(book_result_url, avail, ownedCopies, pplWaiting, estWaitDays, formatType);
                     // book_data.push(gr_to_read_obj);
                     book_data = gr_to_read_obj;
-
                 }
               }
-
           
           } else {
-              console.log("no results found for " + gr_to_read[r][1] + " at " + doc.title);
-              book_data.push('ebook no', 'audiobook no');
+              console.log("no results found for " + book_data[2] + " at " + doc.title);
+                  //gr_to_read_obj.bookURL = 'NA';
+                  Object.assign(gr_to_read_obj, {
+                    bookURL: 'NA',
+                    formatType: 'NA', 
+                  });
+
+              //book_data.push('ebook no', 'audiobook no');
+              book_data = gr_to_read_obj;
 
           }
-
             //console.log('full book data: ' + book_data);
             return book_data;
         })
