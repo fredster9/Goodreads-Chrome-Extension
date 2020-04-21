@@ -1,7 +1,7 @@
 var parser = new DOMParser();
 var book_result_url = "";
 
-//Utility function for getting the current url taken from the chrome getting started tutorial
+// utility function for getting the current url taken from the chrome getting started tutorial
 function getCurrentTabUrl(callback) {
     var queryInfo = {
         active: true,
@@ -16,7 +16,7 @@ function getCurrentTabUrl(callback) {
     });
 }
 
-//whenever the browser action is clicked the chrome stored url is updated and the content script is run.
+// whenever the browser action (icon) is clicked the chrome stored url is updated and the content script is run.
 chrome.browserAction.onClicked.addListener(function(tab, url) {
     getCurrentTabUrl((url) => {
         chrome.storage.sync.set({
@@ -58,6 +58,7 @@ chrome.runtime.onMessage.addListener(
                 .then(data => sendResponse(data))
                 .catch(error => console.error(error));
             return true; // this makes it async
+        
         } else if (requestQuery.includes("query") === true) { // not sure why doesnt' work with above code
 
             //console.log('in queryNYPL');
@@ -130,7 +131,6 @@ chrome.runtime.onMessage.addListener(
 
 
                                 // this only works for two results
-
                                 if (formats.includes("audiobook")) {
                                     console.log('in audiobook');
                                     gr_to_read_obj.a_bookURL = book_result_url;
