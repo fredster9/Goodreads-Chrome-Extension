@@ -99,6 +99,7 @@ function checkAuthor(gr_author_id, gr_author_name, gr_book_id) {
 }
 
 // adds bar to top of Amazon page
+// TODO: remove bar before adding, to prevent double vision
 function textBar(author_results, gr_book_id) {
   // create div and append results
   const div = document.createElement("div");
@@ -396,11 +397,23 @@ function getISBNOverdrive() {
   getBookIDfromISBN(overdriveISBN);
 }
 
-///// ADD TO GOODREADS WANT TO READ /////
+///// ADD TO GOODREADS WANT TO READ SHELF /////
 
 function addToGR() {
   console.log("in addToGr");
-  return false;
+
+  chrome.runtime.sendMessage(
+    {
+      contentScriptQuery: "addToShelf",
+      url: gr_book_url,
+    },
+    (data) => {
+      let doc = parser.parseFromString(data, "text/html");
+      console.log("we're back from background_script.js");
+      // get rating
+      //let gr_rating_check = doc.querySelectorAll("rating")[0];
+    }
+  );
 }
 
 ///// GOODREADS CHECK TO READ IS AVAIL ON NYPL /////
