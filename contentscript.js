@@ -11,18 +11,9 @@ https://github.com/ssaitta/ReciPal
 */
 var website = "";
 var parser = new DOMParser();
-<<<<<<< HEAD
-// change up / obscure from github
-// var gr_user_id = "23956770"; // Goodreads ID unique to user
-// var key = "7sCDkKbnv3C6vomF7ka4dw"; // Goodreads API key unique to user
 var gr_user_id;
 var gr_key;
 var libURL;
-
-=======
-var key = "<<ENTER YOUR KEY>>"; // Goodreads API key unique to user
-var gr_user_id = "<<ENTER YOUR ID>>"; // Goodreads ID unique to user
->>>>>>> a728626ced91638fa519a61c320df71b1f112e09
 var gr_to_read = []; // empty return object - a list of lists
 var gr_to_read_array = []; // list of obj
 var gr_final_obj;
