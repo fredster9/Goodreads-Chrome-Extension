@@ -21,7 +21,6 @@ var books; // the 'bookalike review' html from bookreads page
 var gr_book_url = ""; // the book URL used in add to shelf
 
 // https://www.goodreads.com/review/show_by_user_and_book.xml?book_id=42112733&key=8skO59XMpdv088mf68ehZQ&user_id=23956770
-// https://www.goodreads.com/review/69647/show.xml?key=8skO59XMpdv088mf68ehZQ
 
 ///// ADD CRED BAR
 function addCredBar() {
@@ -55,7 +54,6 @@ function checkAuthor(gr_author_id, gr_author_name, gr_book_id) {
   // first call to determine # of results
   var pg_num = 1; // not really needed when querying author with enough per_page
   var per_page = 50; // up to 200, 50 should be safe
-  // https://www.goodreads.com/review/list/23956770.xml?key=8skO59XMpdv088mf68ehZQ&sort=author&per_page=10&v=2
   var urlGoodreadsAuthor =
     "https://www.goodreads.com/review/list/" +
     gr_user_id +
