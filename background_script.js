@@ -1,6 +1,9 @@
 var parser = new DOMParser();
 var book_result_url = "";
 
+var gr_key; // Goodreads API key unique to user
+var gr_user_id; // Goodreads ID unique to user
+
 // utility function for getting the current url taken from the chrome getting started tutorial
 function getCurrentTabUrl(callback) {
   var queryInfo = {
@@ -49,31 +52,43 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 
   var queryNYPLresponse = []; // doc.title extact, ebook avail, audio avail
 
+  // FETCH HTML
   if (request.contentScriptQuery == "fetchHTML") {
     console.log("in fetchHtml");
+    console.log("fetch request url: " + request.url);
     fetch(request.url)
       .then((response) => response.text())
       .then((data) => sendResponse(data))
       .catch((error) => console.error(error));
     return true; // this makes it async
+    //
+    // ADDTOSHELF
   } else if (requestQuery.includes("addToShelf") === true) {
-    console.log("in add to shelf");
-    fetch(request.url)
-      .then((response) => response.text())
-      .then(function (data) {
-        let doc = parser.parseFromString(data, "text/html");
-        console.log("title: " + doc.title);
-        btnAddToShelf = doc.getElementsByClassName("wtrToRead")[0];
-        console.log("btn: " + btnAddToShelf);
-        console.log("button text: " + btnAddToShelf.innerText);
-        btnAddToShelf.submit();
-      })
-      .then((data) => sendResponse(data))
-      .catch((error) => console.error(error));
-    return true;
+    console.log("in addtoshelf");
+    addURL = request.url;
+    console.log("addBookID: " + addBookID);
+    // this fetch part isn't needed
+    // fetch(request.url)
+    //   .then((response) => response.text())
+    //   .then(function (data) {
+    //     let doc = parser.parseFromString(data, "text/html");
+    //     console.log("title: " + doc.title);
+    //     // btnAddToShelf = doc.getElementsByClassName("wtrToRead")[0];
+    //     // console.log("btn: " + btnAddToShelf);
+    //     // console.log("button text: " + btnAddToShelf.innerText);
+    //     //btnAddToShelf.submit();
+
+    //     oauthTime(addBookID);
+    //   })
+    //   .then((data) => sendResponse(data))
+    //   .catch((error) => console.error(error));
+    // return true;
+    oauthTime(addBookID);
+    //
+    // QUERY
   } else if (requestQuery.includes("query") === true) {
     // not sure why doesnt' work with above code
-    //console.log('in queryNYPL');
+    console.log("in queryNYPL");
     //console.log('book data: ' + request.book_data_short);
     fetch(request.url)
       .then((response) => response.text())

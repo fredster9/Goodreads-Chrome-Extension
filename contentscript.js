@@ -5,14 +5,19 @@ https://medium.com/@ssaitta13/recipal-a-first-chrome-extension-18c2848cf822
 https://github.com/rubenmv/extension-goodreads-ratings-for-amazon/blob/master/content.js
 https://github.com/ssaitta/ReciPal
 
+// TODO: will need to change manifest.json permissions to all overdrvive, not just NYPL
 
-///// AMAZON CHECK READ ////
 
 */
 var website = "";
 var parser = new DOMParser();
-var key = "8skO59XMpdv088mf68ehZQ"; // Goodreads API key unique to user
-var gr_user_id = "23956770"; // Goodreads ID unique to user
+// change up / obscure from github
+// var gr_user_id = "23956770"; // Goodreads ID unique to user
+// var key = "7sCDkKbnv3C6vomF7ka4dw"; // Goodreads API key unique to user
+var gr_user_id;
+var gr_key;
+var libURL;
+
 var gr_to_read = []; // empty return object - a list of lists
 var gr_to_read_array = []; // list of obj
 var gr_final_obj;
@@ -21,6 +26,24 @@ var gr_book_url = ""; // the book URL used in add to shelf
 
 // https://www.goodreads.com/review/show_by_user_and_book.xml?book_id=42112733&key=8skO59XMpdv088mf68ehZQ&user_id=23956770
 // https://www.goodreads.com/review/69647/show.xml?key=8skO59XMpdv088mf68ehZQ
+
+///// ADD CRED BAR
+function addCredBar() {
+  const div = document.createElement("div");
+  div.setAttribute("id", "credBar");
+  div.style.height = "20px";
+  div.style.background = "PapayaWhip"; // bar color
+  //var text_content = document.createTextNode(bar_text);
+
+  document.body.insertBefore(div, document.body.firstChild);
+  var bar_text =
+    "Please enter your credentials to use extension. Right click on icon and click Options";
+  var current_div = document.getElementById("credBar");
+  current_div.innerHTML += "<b>" + bar_text + "</b>";
+  // var current_div_height = current_div.offsetHeight;
+}
+
+///// AMAZON PAGE CODE
 
 // Checks Goodreads shelf using BookID
 function checkAuthor(gr_author_id, gr_author_name, gr_book_id) {
@@ -42,7 +65,7 @@ function checkAuthor(gr_author_id, gr_author_name, gr_book_id) {
     gr_user_id +
     ".xml?" +
     "key=" +
-    key +
+    gr_key +
     "&search%5Bquery%5D=" +
     query_author_name + // the %5B and D are encoding for square brackets
     "&sort=author" + // maybe not needed
@@ -51,7 +74,7 @@ function checkAuthor(gr_author_id, gr_author_name, gr_book_id) {
     "&page=" +
     pg_num +
     "&v=2";
-  //console.log(urlGoodreadsAuthor);
+  console.log("author url: " + urlGoodreadsAuthor);
 
   // empty return object - a list of lists
   var author_results = [];
@@ -66,8 +89,11 @@ function checkAuthor(gr_author_id, gr_author_name, gr_book_id) {
 
       const reviews = doc.querySelectorAll("review");
 
-      for (let i = 0; i < reviews.length; i++) {
-        //console.log('review' + reviews[i].innerHTML);
+      console.log("length reviews: " + reviews.length);
+
+      for (var i = 0; i < reviews.length; i++) {
+        //console.log("review i: " + i);
+        //console.log("review" + reviews[i].innerHTML);
         auth_id = reviews[i].querySelectorAll("author id")[0].innerHTML;
         //console.log('author id ' + auth_id);
 
@@ -76,23 +102,34 @@ function checkAuthor(gr_author_id, gr_author_name, gr_book_id) {
           var rating = reviews[i].querySelectorAll("rating")[0].innerHTML;
 
           var book = reviews[i].getElementsByTagName("book")[0];
-          // console.log('book tag ' + book);
+          // console.log("book tag " + book);
 
           var books = doc.querySelectorAll("book");
 
-          var book_child = books[i].children[9].innerText;
-          // console.log('book_child ' + book_child);
+          var book_url_new = doc.querySelectorAll("url")[0].outerHTML;
+          //console.log("book_url_new: " + book_url_new);
+
+          var book_url = book_url_new
+            .replace("<url><!--[CDATA[", "")
+            .replace("]]--></url>", "");
 
           var book_id_this = books[i].querySelectorAll("id")[0].innerHTML;
 
-          var book_url = book_child.match(/\bhttps?:\/\/\S+/gi);
-
-          // console.log('book_id_this: ' + book_id_this + '\n title: ' + title +
-          //     '\n rating: ' + rating + '\n book_url ' + book_url);
+          // console.log(
+          //   "book_id_this: " +
+          //     book_id_this +
+          //     "\n title: " +
+          //     title +
+          //     "\n rating: " +
+          //     rating +
+          //     "\n book_url " +
+          //     book_url
+          // );
 
           author_results.push([book_id_this, title, rating, book_url[0]]);
         }
       }
+      console.log("pre text bar book id: " + gr_book_id);
       textBar(author_results, gr_book_id);
     }
   );
@@ -147,7 +184,7 @@ function textBar(author_results, gr_book_id) {
           "</a>" +
           ", " +
           auth_content[2] +
-          "  <-- on this book page right now";
+          "  <-- on this book page right now"; // TODO: why isn't this working?
       } else {
         current_div.innerHTML +=
           '<br><a href="' +
@@ -164,21 +201,23 @@ function textBar(author_results, gr_book_id) {
   var addToGR_div = document.getElementById("addToGR");
   //console.log('addtoGR_div ' + addToGR_div);
   if (addToGR_div != null) {
-    console.log("addToGR_div if not null: " + addToGR_div);
+    //console.log("addToGR_div if not null: " + addToGR_div);
     addToGR_div.onclick = function () {
       console.log("link clicked");
-      addToGR();
+      addToGR(gr_book_id);
     };
   }
 }
 
 // checks goodreads to see if book is rated
 function checkMyShelf(gr_book_id, gr_author_id, gr_author_name) {
+  fetchCreds();
+
   var urlGoodreadsShelf =
     "https://www.goodreads.com/review/show_by_user_and_book.xml?book_id=" +
     gr_book_id +
     "&key=" +
-    key +
+    gr_key +
     "&user_id=" +
     gr_user_id;
   console.log(urlGoodreadsShelf);
@@ -194,17 +233,17 @@ function checkMyShelf(gr_book_id, gr_author_id, gr_author_name) {
       // get rating
       let gr_rating_check = doc.querySelectorAll("rating")[0];
 
-      if (typeof gr_rating_check === "undefined") {
+      if (typeof gr_rating_check === "undefined" || "0") {
         console.log("either request failed (??) or not rated");
         bar_text =
-          "No rating found -> <a id='addToGR'>add to Goodreads 'Want to Read'</a>";
+          "Book not rated -> <a id='addToGR'>view on Goodreads'</a> or <a id='checkLib'>on your library site.</a>";
         //getAuthorIDnotread(gr_book_id);
-        checkAuthor(gr_author_id, gr_author_name);
+        checkAuthor(gr_author_id, gr_author_name, gr_book_id);
       } else {
         let gr_rating = doc.querySelectorAll("rating")[0].textContent;
         console.log("Goodreads rating: " + gr_rating);
         bar_text = "Goodreads rating for this book: " + gr_rating;
-        checkAuthor(gr_author_id, gr_author_name, gr_book_id);
+        checkAuthor(gr_author_id, gr_author_name, gr_book_id); // TODO: keep from adding the book on this page 2x
       }
     }
   );
@@ -215,7 +254,7 @@ function checkMyShelf(gr_book_id, gr_author_id, gr_author_name) {
 function getBookIDASIN(asin) {
   var isbn = asin;
   var urlGoodreads =
-    "https://www.goodreads.com/book/isbn/" + isbn + "?key=" + key;
+    "https://www.goodreads.com/book/isbn/" + isbn + "?key=" + gr_key;
   console.log("Retrieving goodreads info from url: " + urlGoodreads);
 
   chrome.runtime.sendMessage(
@@ -254,7 +293,7 @@ function getBookIDASIN(asin) {
   );
 }
 
-// Code to get ASIN from Amazon
+/////// GET ASIN FROM AMAZON PAGE
 // This all comes from https://github.com/rubenmv/extension-goodreads-ratings-for-amazon/blob/master/content.js
 
 /**
@@ -354,7 +393,7 @@ function getISBNAmazon() {
 function getBookIDfromISBN(overdriveISBN) {
   var isbn = overdriveISBN;
   var urlGoodreads =
-    "https://www.goodreads.com/book/isbn/" + isbn + "?key=" + key;
+    "https://www.goodreads.com/book/isbn/" + isbn + "?key=" + gr_key;
   console.log("Retrieving goodreads info from url: " + urlGoodreads);
 
   chrome.runtime.sendMessage(
@@ -399,13 +438,15 @@ function getISBNOverdrive() {
 
 ///// ADD TO GOODREADS WANT TO READ SHELF /////
 
-function addToGR() {
+// TODO: cut this
+function addToGR(gr_book_id) {
   console.log("in addToGr");
 
   chrome.runtime.sendMessage(
     {
       contentScriptQuery: "addToShelf",
       url: gr_book_url,
+      book_id: gr_book_id,
     },
     (data) => {
       let doc = parser.parseFromString(data, "text/html");
@@ -533,7 +574,9 @@ function makeurlNYPL(gr_to_read) {
 
   //console.log('in queryNYPL');
 
-  var nypl_url_base = "https://nypl.overdrive.com/search/title?query="; // https://nypl.overdrive.com/search/title?query=speedboat&creator=renata+adler
+  //var nypl_url_base = "https://nypl.overdrive.com/search/title?query="; // https://nypl.overdrive.com/search/title?query=speedboat&creator=renata+adler
+  var url_base = "https://" + libURL + "/search/title?query=";
+  console.log("url_base:", url_base);
 
   for (var i = 0; i < gr_to_read.length; i++) {
     //console.log('gr_to_read loop, pos ' + i); //+ ' : ' + gr_to_read[i]);
@@ -549,9 +592,9 @@ function makeurlNYPL(gr_to_read) {
     // console.log('url_author: ' + url_author);
     // console.log('url_title: ' + url_title);
 
-    urlNYPL = nypl_url_base + url_title + "&creator=" + url_author;
+    lib_url = url_base + url_title + "&creator=" + url_author;
     //console.log('urlNYPL: ' + urlNYPL);
-    gr_to_read[i].push(urlNYPL);
+    gr_to_read[i].push(lib_url);
   }
 
   asyncFetch(gr_to_read);
@@ -623,14 +666,38 @@ function getSite() {
     console.log("goodreads");
     parseToRead();
   } else {
-    console.log("not on right site");
+    console.log("not on relevant site");
   }
 }
+
+// gets values set in options from local storage
+function fetchCreds() {
+  chrome.storage.sync.get(function (items) {
+    document.getElementById("libURL").value = items.libURL;
+    document.getElementById("grID").value = items.gr_user_id;
+    document.getElementById("grKey").value = items.gr_key;
+    console.log(
+      "settings updated: " + "\nlibURL =",
+      libURL,
+      "\ngr_user_id =",
+      gr_user_id,
+      "\ngr_key = ",
+      gr_key
+    );
+  });
+}
+// chrome.storage.onChanged.addListener(updatePage);
+// updatePage();
 
 // Use the async API chrome.storage to retreive the url from the backgorund script.
 chrome.storage.sync.get("url", (obj) => {
   let url = obj.url;
-  if (url.indexOf("amazon") !== -1) {
+  // if (url.indexOf("amazon") !== -1) {
+  console.log("url", url);
+  //if (/(?=.*?(amazon))(?=.*?(ebook))/.test(url) === true) {
+  if (url.indexOf("amazon") > -1 && url.indexOf("ebook") > -1) {
+    // if (url.indexof("-ebook") !== -1) {
+    // not very elegant way of doing amazon
     website = "amazon";
   } else if (url.indexOf("overdrive") !== -1) {
     website = "overdrive";
