@@ -489,7 +489,7 @@ function addToGR(gr_book_id) {
 ///// GOODREADS CHECK TO READ IS AVAIL ON NYPL /////
 
 function returnResults(gr_to_read_array) {
-  console.log("gr array in return results ");
+  //console.log("gr array in return results ");
 
   // for (var i = 0; i < gr_to_read_array.length; i++) {
   //     console.log(JSON.stringify(gr_to_read_array[i], null, 4));
@@ -582,7 +582,7 @@ function fetchNYPL(gr_to_read) {
         book_data_short: book_data,
       },
       (data) => {
-        console.log(" in data part of fetchHTML");
+        //console.log(" in data part of fetchHTML");
         //console.log('gr_to_read_obj returned' + JSON.stringify(data, null, 4));
         gr_to_read_array.push(data);
         //console.log('array in for loop' + gr_to_read_array);
@@ -638,7 +638,7 @@ function makeurlNYPL(gr_to_read) {
       // console.log('url_title: ' + url_title);
 
       lib_url = url_base + url_title + "&creator=" + url_author;
-      console.log("lib_url", lib_url);
+      //console.log("lib_url", lib_url);
       gr_to_read[i].push(lib_url);
     }
 

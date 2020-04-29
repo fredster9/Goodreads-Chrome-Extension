@@ -196,14 +196,14 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
               }
               // book_data_short.push(gr_to_read_obj);
               book_data_short = gr_to_read_obj;
-              console.log("book data post obj ");
-              console.log(JSON.stringify(book_data_short, null, 4));
+              //console.log("book data post obj ");
+              // console.log(JSON.stringify(book_data_short, null, 4));
             }
           }
         } else {
-          console.log(
-            "no results found for " + book_data_short[2] + " at " + doc.title
-          );
+          // console.log(
+          //   "no results found for " + book_data_short[2] + " at " + doc.title
+          // );
           //gr_to_read_obj.bookURL = 'NA';
           Object.assign(gr_to_read_obj, {
             bookURL: "NA",
