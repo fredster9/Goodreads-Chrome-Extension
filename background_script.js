@@ -3,6 +3,22 @@ var book_result_url;
 var gr_key; // Goodreads API key unique to user
 var gr_user_id; // Goodreads ID unique to user
 
+// when icon is clicked
+chrome.browserAction.onClicked.addListener(function (tab, url) {
+  console.log("onclicked, url =", url);
+  getCurrentTabUrl((url) => {
+    chrome.storage.sync.set(
+      {
+        url: url,
+      },
+      () => {}
+    );
+  });
+  chrome.tabs.executeScript(null, {
+    file: "contentscript.js",
+  });
+});
+
 // utility function for getting the current url taken from the chrome getting started tutorial
 function getCurrentTabUrl(callback) {
   var queryInfo = {
@@ -37,39 +53,23 @@ chrome.tabs.onActivated.addListener(function (activeInfo) {
   });
 });
 
-chrome.tabs.onUpdated.addListener((tabId, change, tab) => {
-  console.log("in tabs.onUpdated");
-  if (tab.active && change.url) {
-    var url = change.url;
-    getCurrentTabUrl((url) => {
-      chrome.storage.sync.set(
-        {
-          url: url,
-        },
-        () => {}
-      );
-    });
-    chrome.tabs.executeScript(null, {
-      file: "contentscript.js",
-    });
-  }
-});
-
-// when icon is clicked
-chrome.browserAction.onUpdated.addListener(function (tab, url) {
-  console.log("onupdated, url =", url);
-  getCurrentTabUrl((url) => {
-    chrome.storage.sync.set(
-      {
-        url: url,
-      },
-      () => {}
-    );
-  });
-  chrome.tabs.executeScript(null, {
-    file: "contentscript.js",
-  });
-});
+// chrome.tabs.onUpdated.addListener((tabId, change, tab) => {
+//   console.log("in tabs.onUpdated");
+//   if (tab.active && change.url) {
+//     var url = change.url;
+//     getCurrentTabUrl((url) => {
+//       chrome.storage.sync.set(
+//         {
+//           url: url,
+//         },
+//         () => {}
+//       );
+//     });
+//     chrome.tabs.executeScript(null, {
+//       file: "contentscript.js",
+//     });
+//   }
+// });
 
 ///// parse NYPL page and look for books
 function parseNYPL(response) {

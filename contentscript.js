@@ -14,7 +14,6 @@ var parser = new DOMParser();
 var gr_user_id; // are these actually used?
 var gr_key;
 var libURL;
-// var creds = [];
 var gr_to_read = []; // empty return object - a list of lists
 var gr_to_read_array = []; // list of obj
 var gr_final_obj;
@@ -246,48 +245,65 @@ function checkMyShelf(gr_book_id, gr_author_id, gr_author_name) {
 // When successful goes to see if it's on Goodreads shelf
 function getBookIDASIN(asin) {
   console.log("in getBookIDASIN");
-  var creds = fetchCreds();
-  console.log("creds:", creds);
 
-  var isbn = asin;
-  var urlGoodreads =
-    "https://www.goodreads.com/book/isbn/" + isbn + "?key=" + gr_key;
-  console.log("Retrieving goodreads info from url: " + urlGoodreads);
+  // fetchCreds().then(console.log("creds", creds));
 
-  chrome.runtime.sendMessage(
-    {
-      contentScriptQuery: "fetchHTML",
-      url: urlGoodreads,
-    },
-    (data) => {
-      //console.log('data' + data);
-      let doc = parser.parseFromString(data, "text/html");
-      //console.log(doc);
-      let gr_title = doc.querySelectorAll("title")[0].textContent;
-      let gr_book_id = doc.querySelectorAll("best_book_id")[0].textContent;
-      let gr_author_name = doc.querySelectorAll("author name")[0].textContent;
-      let gr_author_id = doc.querySelectorAll("author id")[0].textContent;
-      let gr_book_url_raw = doc.querySelectorAll("url")[0].outerHTML;
-      gr_book_url = gr_book_url_raw
-        .replace("<url><!--[CDATA[", "")
-        .replace("]]--></url>", "");
+  creds = [];
 
-      console.log(
-        "Goodreads - title tag: " +
-          gr_title +
-          "\nbook ID: " +
-          gr_book_id +
-          "\nauthor name: " +
-          gr_author_name +
-          "\nauthor id: " +
-          gr_author_id +
-          "\nbook url: " +
-          gr_book_url
+  chrome.storage.sync.get(["libURL", "gr_user_id", "gr_key"], function (items) {
+    creds = [items.libURL, items.gr_user_id, items.gr_key];
+    console.log("stored creds:", creds);
+
+    libURL = creds[0]; // setting global
+    gr_user_id = creds[1];
+    gr_key = creds[2];
+
+    // check if populated or not
+    if (creds[1].length < 1) {
+      console.log("gr_user_id does not exist -> go to add creds div function");
+    } else {
+      var isbn = asin;
+      var urlGoodreads =
+        "https://www.goodreads.com/book/isbn/" + isbn + "?key=" + gr_key;
+      console.log("Retrieving goodreads info from url: " + urlGoodreads);
+
+      chrome.runtime.sendMessage(
+        {
+          contentScriptQuery: "fetchHTML",
+          url: urlGoodreads,
+        },
+        (data) => {
+          //console.log('data' + data);
+          let doc = parser.parseFromString(data, "text/html");
+          //console.log(doc);
+          let gr_title = doc.querySelectorAll("title")[0].textContent;
+          let gr_book_id = doc.querySelectorAll("best_book_id")[0].textContent;
+          let gr_author_name = doc.querySelectorAll("author name")[0]
+            .textContent;
+          let gr_author_id = doc.querySelectorAll("author id")[0].textContent;
+          let gr_book_url_raw = doc.querySelectorAll("url")[0].outerHTML;
+          gr_book_url = gr_book_url_raw
+            .replace("<url><!--[CDATA[", "")
+            .replace("]]--></url>", "");
+
+          console.log(
+            "Goodreads - title tag: " +
+              gr_title +
+              "\nbook ID: " +
+              gr_book_id +
+              "\nauthor name: " +
+              gr_author_name +
+              "\nauthor id: " +
+              gr_author_id +
+              "\nbook url: " +
+              gr_book_url
+          );
+
+          checkMyShelf(gr_book_id, gr_author_id, gr_author_name);
+        }
       );
-
-      checkMyShelf(gr_book_id, gr_author_id, gr_author_name);
     }
-  );
+  });
 }
 
 /////// GET ASIN FROM AMAZON PAGE
@@ -389,32 +405,48 @@ function getISBNAmazon() {
 // When successful, goes to see if it's on the Goodreads shelf
 function getBookIDfromISBN(overdriveISBN) {
   var isbn = overdriveISBN;
-  var urlGoodreads =
-    "https://www.goodreads.com/book/isbn/" + isbn + "?key=" + gr_key;
-  console.log("Retrieving goodreads info from url: " + urlGoodreads);
+  creds = [];
 
-  chrome.runtime.sendMessage(
-    {
-      contentScriptQuery: "fetchHTML",
-      url: urlGoodreads,
-    },
-    (data) => {
-      //console.log('data' + data);
-      let doc = parser.parseFromString(data, "text/html");
-      //console.log(doc);
-      let gr_title = doc.querySelectorAll("title")[0].textContent;
-      let gr_book_id = doc.querySelectorAll("best_book_id")[0].textContent;
-      let gr_author_name = doc.querySelectorAll("author name")[0].textContent;
-      let gr_author_id = doc.querySelectorAll("author id")[0].textContent;
+  chrome.storage.sync.get(["libURL", "gr_user_id", "gr_key"], function (items) {
+    creds = [items.libURL, items.gr_user_id, items.gr_key];
+    console.log("stored creds:", creds);
 
-      // console.log('Goodreads title tag: ' + gr_title);
-      // console.log('Goodreads book ID: ' + gr_book_id);
-      // console.log('Goodreads author name: ' + gr_author_name);
-      // console.log('Goodreads author ID: ' + gr_author_id);
+    libURL = creds[0]; // setting global
+    gr_user_id = creds[1];
+    gr_key = creds[2];
 
-      checkMyShelf(gr_book_id, gr_author_id, gr_author_name);
+    if (creds[1].length < 1) {
+      console.log("gr_user_id does not exist -> go to add creds div function");
+    } else {
+      var urlGoodreads =
+        "https://www.goodreads.com/book/isbn/" + isbn + "?key=" + gr_key;
+      console.log("Retrieving goodreads info from url: " + urlGoodreads);
+
+      chrome.runtime.sendMessage(
+        {
+          contentScriptQuery: "fetchHTML",
+          url: urlGoodreads,
+        },
+        (data) => {
+          //console.log('data' + data);
+          let doc = parser.parseFromString(data, "text/html");
+          //console.log(doc);
+          let gr_title = doc.querySelectorAll("title")[0].textContent;
+          let gr_book_id = doc.querySelectorAll("best_book_id")[0].textContent;
+          let gr_author_name = doc.querySelectorAll("author name")[0]
+            .textContent;
+          let gr_author_id = doc.querySelectorAll("author id")[0].textContent;
+
+          // console.log('Goodreads title tag: ' + gr_title);
+          // console.log('Goodreads book ID: ' + gr_book_id);
+          // console.log('Goodreads author name: ' + gr_author_name);
+          // console.log('Goodreads author ID: ' + gr_author_id);
+
+          checkMyShelf(gr_book_id, gr_author_id, gr_author_name);
+        }
+      );
     }
-  );
+  });
 }
 
 // Extract the ISBN from OverDrive page
@@ -571,30 +603,47 @@ function makeurlNYPL(gr_to_read) {
 
   //console.log('in queryNYPL');
 
-  //var nypl_url_base = "https://nypl.overdrive.com/search/title?query="; // https://nypl.overdrive.com/search/title?query=speedboat&creator=renata+adler
-  var url_base = "https://" + libURL + "/search/title?query=";
-  console.log("url_base:", url_base);
+  creds = [];
 
-  for (var i = 0; i < gr_to_read.length; i++) {
-    //console.log('gr_to_read loop, pos ' + i); //+ ' : ' + gr_to_read[i]);
+  chrome.storage.sync.get(["libURL", "gr_user_id", "gr_key"], function (items) {
+    creds = [items.libURL, items.gr_user_id, items.gr_key];
+    console.log("stored creds:", creds);
+    libURL = creds[0]; // setting global
+    gr_user_id = creds[1];
+    gr_key = creds[2];
 
-    // replace spaces with +
-    // because author format is 'last, first' use only last
-    var url_author = gr_to_read[i][1].split(",")[0];
+    // check if populated or not
+    if (creds[1].length < 1) {
+      console.log("gr_user_id does not exist -> go to add creds div function");
+      return creds;
+    } else {
+    }
+    libURL = creds[0];
+    //var nypl_url_base = "https://nypl.overdrive.com/search/title?query="; // https://nypl.overdrive.com/search/title?query=speedboat&creator=renata+adler
+    var url_base = "https://" + libURL + "/search/title?query=";
+    console.log("url_base:", url_base);
 
-    // strip subtitles
-    var url_title = gr_to_read[i][2].split("(")[0];
-    url_title = url_title.split(":")[0];
-    url_title = url_title.replace(/ /g, "+").replace(/\./g, "");
-    // console.log('url_author: ' + url_author);
-    // console.log('url_title: ' + url_title);
+    for (var i = 0; i < gr_to_read.length; i++) {
+      //console.log('gr_to_read loop, pos ' + i); //+ ' : ' + gr_to_read[i]);
 
-    lib_url = url_base + url_title + "&creator=" + url_author;
-    //console.log('urlNYPL: ' + urlNYPL);
-    gr_to_read[i].push(lib_url);
-  }
+      // replace spaces with +
+      // because author format is 'last, first' use only last
+      var url_author = gr_to_read[i][1].split(",")[0];
 
-  asyncFetch(gr_to_read);
+      // strip subtitles
+      var url_title = gr_to_read[i][2].split("(")[0];
+      url_title = url_title.split(":")[0];
+      url_title = url_title.replace(/ /g, "+").replace(/\./g, "");
+      // console.log('url_author: ' + url_author);
+      // console.log('url_title: ' + url_title);
+
+      lib_url = url_base + url_title + "&creator=" + url_author;
+      console.log("lib_url", lib_url);
+      gr_to_read[i].push(lib_url);
+    }
+
+    asyncFetch(gr_to_read);
+  });
 }
 
 async function asyncFetch(gr_to_read) {
@@ -653,13 +702,24 @@ function parseToRead() {
 // gets values set in options from local storage
 function fetchCreds() {
   console.log("in fetchCreds");
+  creds = [];
 
-  let creds = [];
   chrome.storage.sync.get(["libURL", "gr_user_id", "gr_key"], function (items) {
     creds = [items.libURL, items.gr_user_id, items.gr_key];
     console.log("stored creds:", creds);
+
+    urlLib = creds[0]; // setting global
+    gr_user_id = creds[1];
+    gr_key = creds[2];
+
+    // check if populated or not
+    if (creds[1].length > 1) {
+      console.log("gr_user_id exists");
+      return creds;
+    } else {
+      console.log("gr_user_id does not exist -> go to add creds div function");
+    }
   });
-  return creds;
 }
 
 ///// CHECK CURRENT SITE /////
