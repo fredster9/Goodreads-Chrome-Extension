@@ -11,21 +11,14 @@
   "content_scripts": [
     {
       "matches": [
-        "https://nypl.overdrive.com/media/*",
+        "https://*.overdrive.com/media/*",
         "https://www.amazon.com/*"
       ],
       "js": ["contentscript.js"],
       "run_at": "document_idle"
     }
   ],
-  "permissions": [
-    "activeTab",
-    "storage",
-    "tabs",
-    "https://nypl.overdrive.com/media/*",
-    "https://www.amazon.com/*",
-    "https://www.goodreads.com/*"
-  ],
+  "permissions": ["activeTab", "storage", "tabs", "*://*/*"],
 
   "options_ui": {
     "page": "options.html",

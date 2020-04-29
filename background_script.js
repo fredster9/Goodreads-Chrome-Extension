@@ -1,6 +1,5 @@
 var parser = new DOMParser();
-var book_result_url = "";
-
+var book_result_url;
 var gr_key; // Goodreads API key unique to user
 var gr_user_id; // Goodreads ID unique to user
 
@@ -14,13 +13,51 @@ function getCurrentTabUrl(callback) {
   chrome.tabs.query(queryInfo, (tabs) => {
     var tab = tabs[0];
     var url = tab.url;
+    console.log("tab url", url);
     console.assert(typeof url == "string", "tab.url should be a string");
     callback(url);
   });
 }
 
-// whenever the browser action (icon) is clicked the chrome stored url is updated and the content script is run.
-chrome.browserAction.onClicked.addListener(function (tab, url) {
+chrome.tabs.onActivated.addListener(function (activeInfo) {
+  console.log("in tabs.onActivated");
+  chrome.tabs.get(activeInfo.tabId, function (tab) {
+    var url = tab.url;
+    getCurrentTabUrl((url) => {
+      chrome.storage.sync.set(
+        {
+          url: url,
+        },
+        () => {}
+      );
+    });
+    chrome.tabs.executeScript(null, {
+      file: "contentscript.js",
+    });
+  });
+});
+
+chrome.tabs.onUpdated.addListener((tabId, change, tab) => {
+  console.log("in tabs.onUpdated");
+  if (tab.active && change.url) {
+    var url = change.url;
+    getCurrentTabUrl((url) => {
+      chrome.storage.sync.set(
+        {
+          url: url,
+        },
+        () => {}
+      );
+    });
+    chrome.tabs.executeScript(null, {
+      file: "contentscript.js",
+    });
+  }
+});
+
+// when icon is clicked
+chrome.browserAction.onUpdated.addListener(function (tab, url) {
+  console.log("onupdated, url =", url);
   getCurrentTabUrl((url) => {
     chrome.storage.sync.set(
       {
@@ -34,6 +71,7 @@ chrome.browserAction.onClicked.addListener(function (tab, url) {
   });
 });
 
+///// parse NYPL page and look for books
 function parseNYPL(response) {
   console.log("in parseNYPL");
   console.log("response: " + response);
@@ -63,27 +101,13 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     return true; // this makes it async
     //
     // ADDTOSHELF
-  } else if (requestQuery.includes("addToShelf") === true) {
-    console.log("in addtoshelf");
-    addURL = request.url;
-    console.log("addBookID: " + addBookID);
-    // this fetch part isn't needed
-    // fetch(request.url)
-    //   .then((response) => response.text())
-    //   .then(function (data) {
-    //     let doc = parser.parseFromString(data, "text/html");
-    //     console.log("title: " + doc.title);
-    //     // btnAddToShelf = doc.getElementsByClassName("wtrToRead")[0];
-    //     // console.log("btn: " + btnAddToShelf);
-    //     // console.log("button text: " + btnAddToShelf.innerText);
-    //     //btnAddToShelf.submit();
+    // KILL THIS
+    // } else if (requestQuery.includes("addToShelf") === true) {
+    //   console.log("in addtoshelf");
+    //   addURL = request.url;
+    //   console.log("addBookID: " + addBookID);
 
-    //     oauthTime(addBookID);
-    //   })
-    //   .then((data) => sendResponse(data))
-    //   .catch((error) => console.error(error));
-    // return true;
-    oauthTime(addBookID);
+    //   oauthTime(addBookID);
     //
     // QUERY
   } else if (requestQuery.includes("query") === true) {

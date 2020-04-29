@@ -11,9 +11,10 @@ https://github.com/ssaitta/ReciPal
 */
 var website = "";
 var parser = new DOMParser();
-var gr_user_id;
+var gr_user_id; // are these actually used?
 var gr_key;
 var libURL;
+// var creds = [];
 var gr_to_read = []; // empty return object - a list of lists
 var gr_to_read_array = []; // list of obj
 var gr_final_obj;
@@ -205,8 +206,6 @@ function textBar(author_results, gr_book_id) {
 
 // checks goodreads to see if book is rated
 function checkMyShelf(gr_book_id, gr_author_id, gr_author_name) {
-  fetchCreds();
-
   var urlGoodreadsShelf =
     "https://www.goodreads.com/review/show_by_user_and_book.xml?book_id=" +
     gr_book_id +
@@ -246,6 +245,10 @@ function checkMyShelf(gr_book_id, gr_author_id, gr_author_name) {
 // Takes Amazon ASIN and checks Goodreads for book
 // When successful goes to see if it's on Goodreads shelf
 function getBookIDASIN(asin) {
+  console.log("in getBookIDASIN");
+  var creds = fetchCreds();
+  console.log("creds:", creds);
+
   var isbn = asin;
   var urlGoodreads =
     "https://www.goodreads.com/book/isbn/" + isbn + "?key=" + gr_key;
@@ -645,6 +648,20 @@ function parseToRead() {
   makeurlNYPL(gr_to_read);
 }
 
+///// CHECK CREDS
+
+// gets values set in options from local storage
+function fetchCreds() {
+  console.log("in fetchCreds");
+
+  let creds = [];
+  chrome.storage.sync.get(["libURL", "gr_user_id", "gr_key"], function (items) {
+    creds = [items.libURL, items.gr_user_id, items.gr_key];
+    console.log("stored creds:", creds);
+  });
+  return creds;
+}
+
 ///// CHECK CURRENT SITE /////
 
 // Checks website and only runs on Amazon or NYPL ebooks library
@@ -664,34 +681,11 @@ function getSite() {
   }
 }
 
-// gets values set in options from local storage
-function fetchCreds() {
-  chrome.storage.sync.get(function (items) {
-    document.getElementById("libURL").value = items.libURL;
-    document.getElementById("grID").value = items.gr_user_id;
-    document.getElementById("grKey").value = items.gr_key;
-    console.log(
-      "settings updated: " + "\nlibURL =",
-      libURL,
-      "\ngr_user_id =",
-      gr_user_id,
-      "\ngr_key = ",
-      gr_key
-    );
-  });
-}
-// chrome.storage.onChanged.addListener(updatePage);
-// updatePage();
-
-// Use the async API chrome.storage to retreive the url from the backgorund script.
+// Use the async API chrome.storage to retreive the url from the background script.
 chrome.storage.sync.get("url", (obj) => {
   let url = obj.url;
-  // if (url.indexOf("amazon") !== -1) {
-  console.log("url", url);
-  //if (/(?=.*?(amazon))(?=.*?(ebook))/.test(url) === true) {
+  console.log("url:", url);
   if (url.indexOf("amazon") > -1 && url.indexOf("ebook") > -1) {
-    // if (url.indexof("-ebook") !== -1) {
-    // not very elegant way of doing amazon
     website = "amazon";
   } else if (url.indexOf("overdrive") !== -1) {
     website = "overdrive";
