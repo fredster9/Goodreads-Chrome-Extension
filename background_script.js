@@ -1,7 +1,5 @@
 var parser = new DOMParser();
 var book_result_url;
-var gr_key; // Goodreads API key unique to user
-var gr_user_id; // Goodreads ID unique to user
 
 // when icon is clicked
 chrome.browserAction.onClicked.addListener(function (tab, url) {
@@ -221,3 +219,19 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     return true; // this makes it async
   }
 });
+
+// when option page link is clicked
+chrome.runtime.onMessage.addListener(function (message) {
+  console.log("options page listnener");
+  switch (message.action) {
+    case "openOptionsPage":
+      openOptionsPage();
+      break;
+    default:
+      break;
+  }
+});
+
+function openOptionsPage() {
+  chrome.runtime.openOptionsPage();
+}

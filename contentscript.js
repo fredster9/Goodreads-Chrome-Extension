@@ -12,7 +12,7 @@ https://github.com/ssaitta/ReciPal
 var website = "";
 var parser = new DOMParser();
 var gr_user_id; // are these actually used?
-var gr_key;
+var gr_key = "7sCDkKbnv3C6vomF7ka4dw";
 var libURL;
 var gr_to_read = []; // empty return object - a list of lists
 var gr_to_read_array = []; // list of obj
@@ -24,18 +24,32 @@ var gr_book_url = ""; // the book URL used in add to shelf
 
 ///// ADD CRED BAR
 function addCredBar() {
+  console.log("in cred bar");
   const div = document.createElement("div");
   div.setAttribute("id", "credBar");
-  div.style.height = "20px";
-  div.style.background = "PapayaWhip"; // bar color
+  div.style.height = "22px";
+  div.style.background = "#b3ffff"; // bar color
+  div.style.color = "Black";
+  div.style.position = "relative";
+  div.style.zIndex = "100000";
   //var text_content = document.createTextNode(bar_text);
 
   document.body.insertBefore(div, document.body.firstChild);
   var bar_text =
-    "Please enter your credentials to use extension. Right click on icon and click Options";
+    "Did I Read Extension: Please click here to enter your credentials.";
   var current_div = document.getElementById("credBar");
-  current_div.innerHTML += "<b>" + bar_text + "</b>";
+  //current_div.innerHTML += "" + bar_text + "</b>";
+  current_div.innerHTML +=
+    "<p>Did I Read Extension: Please click <a id='openPopup'>here</a> to enter your credentials</p>";
   // var current_div_height = current_div.offsetHeight;
+
+  var openPopup_div = document.getElementById("openPopup");
+  if (openPopup_div != null) {
+    openPopup_div.onclick = function () {
+      console.log("open popup link clicked");
+      chrome.runtime.sendMessage({ action: "openOptionsPage" });
+    };
+  }
 }
 
 ///// AMAZON PAGE CODE
@@ -137,11 +151,10 @@ function textBar(author_results, gr_book_id) {
   div.setAttribute("id", "testResults");
   div.style.height = "20px";
   div.style.background = "Azure"; // bar color
+  div.style.color = "Black"; // text
   //var text_content = document.createTextNode(bar_text);
 
   document.body.insertBefore(div, document.body.firstChild);
-  //var text_content = testResults.innerHTML('<br>test</br>')
-  // testResults.appendChild(text_content);
 
   var current_div = document.getElementById("testResults");
   //console.log('div contents' + current_div.innerHTML); // always blank?
@@ -246,21 +259,19 @@ function checkMyShelf(gr_book_id, gr_author_id, gr_author_name) {
 function getBookIDASIN(asin) {
   console.log("in getBookIDASIN");
 
-  // fetchCreds().then(console.log("creds", creds));
-
   creds = [];
 
-  chrome.storage.sync.get(["libURL", "gr_user_id", "gr_key"], function (items) {
-    creds = [items.libURL, items.gr_user_id, items.gr_key];
+  chrome.storage.sync.get(["libURL", "gr_user_id"], function (items) {
+    creds = [items.libURL, items.gr_user_id];
     console.log("stored creds:", creds);
 
     libURL = creds[0]; // setting global
     gr_user_id = creds[1];
-    gr_key = creds[2];
 
     // check if populated or not
-    if (creds[1].length < 1) {
+    if (libURL.length < 1 || gr_user_id.length < 1) {
       console.log("gr_user_id does not exist -> go to add creds div function");
+      addCredBar();
     } else {
       var isbn = asin;
       var urlGoodreads =
@@ -407,16 +418,16 @@ function getBookIDfromISBN(overdriveISBN) {
   var isbn = overdriveISBN;
   creds = [];
 
-  chrome.storage.sync.get(["libURL", "gr_user_id", "gr_key"], function (items) {
-    creds = [items.libURL, items.gr_user_id, items.gr_key];
+  chrome.storage.sync.get(["libURL", "gr_user_id"], function (items) {
+    creds = [items.libURL, items.gr_user_id];
     console.log("stored creds:", creds);
 
     libURL = creds[0]; // setting global
     gr_user_id = creds[1];
-    gr_key = creds[2];
 
-    if (creds[1].length < 1) {
+    if (libURL.length < 1 || gr_user_id.length < 1) {
       console.log("gr_user_id does not exist -> go to add creds div function");
+      addCredBar();
     } else {
       var urlGoodreads =
         "https://www.goodreads.com/book/isbn/" + isbn + "?key=" + gr_key;
@@ -605,16 +616,16 @@ function makeurlNYPL(gr_to_read) {
 
   creds = [];
 
-  chrome.storage.sync.get(["libURL", "gr_user_id", "gr_key"], function (items) {
-    creds = [items.libURL, items.gr_user_id, items.gr_key];
+  chrome.storage.sync.get(["libURL", "gr_user_id"], function (items) {
+    creds = [items.libURL, items.gr_user_id];
     console.log("stored creds:", creds);
     libURL = creds[0]; // setting global
     gr_user_id = creds[1];
-    gr_key = creds[2];
 
     // check if populated or not
-    if (creds[1].length < 1) {
+    if (libURL.length < 1 || gr_user_id.length < 1) {
       console.log("gr_user_id does not exist -> go to add creds div function");
+      addCredBar();
       return creds;
     } else {
     }
@@ -695,31 +706,6 @@ function parseToRead() {
   //console.log("without isbn: " + without_isbn); // 11/37 - 30% - don't have ISBN
   // console.log('gr_to_read_ list: ' + gr_to_read);
   makeurlNYPL(gr_to_read);
-}
-
-///// CHECK CREDS
-
-// gets values set in options from local storage
-function fetchCreds() {
-  console.log("in fetchCreds");
-  creds = [];
-
-  chrome.storage.sync.get(["libURL", "gr_user_id", "gr_key"], function (items) {
-    creds = [items.libURL, items.gr_user_id, items.gr_key];
-    console.log("stored creds:", creds);
-
-    urlLib = creds[0]; // setting global
-    gr_user_id = creds[1];
-    gr_key = creds[2];
-
-    // check if populated or not
-    if (creds[1].length > 1) {
-      console.log("gr_user_id exists");
-      return creds;
-    } else {
-      console.log("gr_user_id does not exist -> go to add creds div function");
-    }
-  });
 }
 
 ///// CHECK CURRENT SITE /////

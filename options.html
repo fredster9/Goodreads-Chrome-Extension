@@ -5,15 +5,89 @@
   </head>
   <body>
     <!--add icon  -->
+
+    <b
+      ><p>
+        Welcome! Thanks for checking this out. Hopefully you find it useful.
+      </p></b
+    >
+    <p>
+      Feel free to email feedback
+      <a href="mailto:animalemailsapp@gmail.com">here</a>
+    </p>
+    <b><p>This app works on two types of pages:</p></b>
+    <ol>
+      <li>
+        Amazon ebook pages (<a
+          href="https://www.amazon.com/gp/product/B004JN1D1O?notRedirectToSDP=1&ref_=dbs_mng_calw_0&storeType=ebooks"
+          >example</a
+        >)
+      </li>
+      <li>
+        The Goodreads "Want To Read" shelf page (<a
+          href="https://www.goodreads.com/review/list/1151637?shelf=to-read"
+          >example</a
+        >)
+      </li>
+    </ol>
+
+    <b><p>Here's what you can do on each page:</p></b>
+    <p><u>Amazon ebook pages</u></p>
+    <ol>
+      <li>
+        See if you've rated the book on Goodreads
+      </li>
+      <li>If you haven't</li>
+      <ul>
+        <li>
+          See if you've rated other books by the author
+        </li>
+        <li>
+          Check your library for availability
+        </li>
+        <li>
+          Open it on library or Goodreads
+        </li>
+      </ul>
+    </ol>
+    <p><u>Goodreads 'Want To Read' shelf pages</u></p>
+    <ul>
+      <li>
+        Automatically check your library for ebook and audiobook availability
+      </li>
+      <li>Open titles on library website</li>
+    </ul>
+
+    <p>----------------------------------</p>
+    <b><p>Enter your credentials below</p></b>
+    <p>
+      <i>
+        For now you need BOTH Goodreads and a library url for the extension to
+        work
+      </i>
+    </p>
+
     <!-- TODO: add some error handling to this -->
-    <label>Enter your library URL:</label>
-    <input type="text" id="libURL" /><br /><br />
+    <label>Overdrive library URL:</label>
+    <input type="text" id="libURL" />
+    <p>
+      Find yours
+      <a href="https://www.overdrive.com/account/select-library">here</a>. Don't
+      include <i>https://</i>.
+    </p>
+    <br />
 
-    <label>Enter your Goodreads ID:</label>
-    <input type="text" id="grID" /><br /><br />
+    <label>Goodreads ID:</label>
+    <input type="text" id="grID" />
+    <p>
+      This is the number at the end of your profile URL. More info
+      <a href="https://help.goodreads.com/s/article/Where-can-I-find-my-user-ID"
+        >here.</a
+      >
+    </p>
 
-    <label>Enter your Goodreads key:</label>
-    <input type="text" id="grKey" /><br /><br />
+    <!-- <label>Goodreads key:</label>
+    <input type="text" id="grKey" /><br /><br /> -->
 
     <div id="status"></div>
 
