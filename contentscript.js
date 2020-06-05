@@ -269,7 +269,12 @@ function getBookIDASIN(asin) {
     gr_user_id = creds[1];
 
     // check if populated or not
-    if (libURL.length < 1 || gr_user_id.length < 1) {
+    if (
+      typeof libURL === "undefined" ||
+      typeof gr_user_id === "undefined" ||
+      libURL.length < 1 ||
+      gr_user_id.length < 1
+    ) {
       console.log("gr_user_id does not exist -> go to add creds div function");
       addCredBar();
     } else {
@@ -731,7 +736,10 @@ function getSite() {
 chrome.storage.sync.get("url", (obj) => {
   let url = obj.url;
   console.log("url:", url);
-  if (url.indexOf("amazon") > -1 && url.indexOf("ebook") > -1) {
+  if (
+    (url.indexOf("amazon") > -1 && url.indexOf("ebook") > -1) ||
+    url.indexOf("dp") > -1
+  ) {
     website = "amazon";
   } else if (url.indexOf("overdrive") !== -1) {
     website = "overdrive";
