@@ -152,6 +152,8 @@ function textBar(author_results, gr_book_id) {
   div.style.height = "20px";
   div.style.background = "Azure"; // bar color
   div.style.color = "Black"; // text
+  div.style.position = "relative";
+  div.style.zIndex = "100000";
   //var text_content = document.createTextNode(bar_text);
 
   document.body.insertBefore(div, document.body.firstChild);
@@ -476,9 +478,61 @@ function getISBNOverdrive() {
   //console.log('overdriveISBNelement ' + overdriveISBNelement);
   var numberPattern = /\d+/g;
   overdriveISBN = overdriveISBNelement.match(numberPattern);
-  c; //onsole.log('overdriveISBN ' + overdriveISBN);
+  //console.log('overdriveISBN ' + overdriveISBN);
 
   getBookIDfromISBN(overdriveISBN);
+}
+
+///// AGET ASIN FROM GOODREDADS BOOK PAGE /////
+
+function getASINgr() {
+  console.log("in getASINgr");
+
+  var authOuter = document.getElementsByClassName("authorName")[0].outerHTML;
+  var re_url = /"(http.*?)"/;
+  var authUrl = authOuter.match(re_url)[0];
+  var authUrl = authUrl.replace(/"/g, ""); // this should behappening in regex but seems not to be
+  console.log("authUrl" + authUrl);
+  var authUrlEnd = authUrl.substring(authUrl.lastIndexOf("/") + 1);
+  console.log("authUrl_end", authUrlEnd);
+  var gr_author_id = authUrlEnd.split(".")[0];
+
+  var gr_author_name = authUrlEnd.split(".")[1];
+  var gr_author_name = gr_author_name.replace("_", " ");
+
+  console.log("auth id", gr_author_id);
+  console.log("auth name", gr_author_name);
+
+  var bookUrl = window.location.href;
+  // console.log("bookUrl", bookUrl);
+  bookUrlEnd = bookUrl.substring(bookUrl.lastIndexOf("/"));
+  console.log("bookUrlEnd", bookUrlEnd);
+  var gr_book_id = bookUrlEnd.replace(/\D+/g, "");
+  console.log("gr_book_id", gr_book_id);
+
+  creds = []; // necessary?
+  chrome.storage.sync.get(["libURL", "gr_user_id"], function (items) {
+    console.log("checking creds");
+
+    creds = [items.libURL, items.gr_user_id];
+    console.log("stored creds:", creds);
+
+    libURL = creds[0]; // setting global ?
+    gr_user_id = creds[1];
+
+    // check if populated or not
+    if (
+      typeof libURL === "undefined" ||
+      typeof gr_user_id === "undefined" ||
+      libURL.length < 1 ||
+      gr_user_id.length < 1
+    ) {
+      console.log("gr_user_id does not exist -> go to add creds div function");
+      addCredBar();
+    } else {
+      checkMyShelf(gr_book_id, gr_author_id, gr_author_name);
+    }
+  });
 }
 
 ///// ADD TO GOODREADS WANT TO READ SHELF /////
@@ -725,8 +779,11 @@ function getSite() {
     console.log("overdrive");
     getISBNOverdrive();
   } else if (website === "goodreads-to-read") {
-    console.log("goodreads");
+    console.log("goodreads to read");
     parseToRead();
+  } else if (website === "goodreads-book") {
+    console.log("goodreads book page");
+    getASINgr();
   } else {
     console.log("not on relevant site");
   }
@@ -745,6 +802,8 @@ chrome.storage.sync.get("url", (obj) => {
     website = "overdrive";
   } else if (url.indexOf("shelf=to-read") !== -1) {
     website = "goodreads-to-read";
+  } else if (url.indexOf("goodreads.com/book") !== -1) {
+    website = "goodreads-book";
   }
 
   console.log("initial get website = " + website);
