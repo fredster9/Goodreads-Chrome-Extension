@@ -154,7 +154,7 @@ function textBar(author_results, gr_book_id) {
   div.style.color = "Black"; // text
   div.style.position = "relative";
   div.style.zIndex = "100000";
-  //var text_content = document.createTextNode(bar_text);
+  // var text_content = document.createTextNode(bar_text);
 
   document.body.insertBefore(div, document.body.firstChild);
 
@@ -483,9 +483,9 @@ function getISBNOverdrive() {
   getBookIDfromISBN(overdriveISBN);
 }
 
-///// AGET ASIN FROM GOODREDADS BOOK PAGE /////
+///// GET INFO FROM GOODREDADS BOOK PAGE /////
 
-function getASINgr() {
+function getInfoGr() {
   console.log("in getASINgr");
 
   var authOuter = document.getElementsByClassName("authorName")[0].outerHTML;
@@ -530,7 +530,8 @@ function getASINgr() {
       console.log("gr_user_id does not exist -> go to add creds div function");
       addCredBar();
     } else {
-      checkMyShelf(gr_book_id, gr_author_id, gr_author_name);
+      bar_text = "To see if you've rated this book look below";
+      checkAuthor(gr_author_id, gr_author_name, gr_book_id);
     }
   });
 }
@@ -783,7 +784,7 @@ function getSite() {
     parseToRead();
   } else if (website === "goodreads-book") {
     console.log("goodreads book page");
-    getASINgr();
+    getInfoGr();
   } else {
     console.log("not on relevant site");
   }
