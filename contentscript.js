@@ -146,75 +146,80 @@ function checkAuthor(gr_author_id, gr_author_name, gr_book_id) {
 // adds bar to top of Amazon page
 // TODO: remove bar before adding, to prevent double vision
 function textBar(author_results, gr_book_id) {
-  // create div and append results
-  const div = document.createElement("div");
-  div.setAttribute("id", "testResults");
-  div.style.height = "20px";
-  div.style.background = "Azure"; // bar color
-  div.style.color = "Black"; // text
-  div.style.position = "relative";
-  div.style.zIndex = "100000";
-  // var text_content = document.createTextNode(bar_text);
+  var barCheck = document.getElementById("testResults");
+  console.log("barCheck", barCheck);
 
-  document.body.insertBefore(div, document.body.firstChild);
+  if (barCheck == undefined) {
+    // create div and append results
+    const div = document.createElement("div");
+    div.setAttribute("id", "testResults");
+    div.style.height = "20px";
+    div.style.background = "Azure"; // bar color
+    div.style.color = "Black"; // text
+    div.style.position = "relative";
+    div.style.zIndex = "100000";
+    // var text_content = document.createTextNode(bar_text);
 
-  var current_div = document.getElementById("testResults");
-  //console.log('div contents' + current_div.innerHTML); // always blank?
+    document.body.insertBefore(div, document.body.firstChild);
 
-  current_div.innerHTML += "<b>" + bar_text + "</b>";
-  var current_div_height = current_div.offsetHeight;
+    var current_div = document.getElementById("testResults");
+    //console.log('div contents' + current_div.innerHTML); // always blank?
 
-  if (author_results.length === 0) {
-    var text_content = "No other books read by this author";
-    console.log("text content " + text_content);
+    current_div.innerHTML += "<b>" + bar_text + "</b>";
     var current_div_height = current_div.offsetHeight;
-    var new_current_div_height = 20;
-    current_div.style.height = new_current_div_height + "px";
-    //current_div.innerHTML += "<br>" + text_content;
-  } else {
-    for (var x = 0; x < author_results.length; x++) {
-      var auth_content = author_results[x];
-      //console.log('auth content ' + auth_content);
+
+    if (author_results.length === 0) {
+      var text_content = "No other books read by this author";
+      console.log("text content " + text_content);
       var current_div_height = current_div.offsetHeight;
-      var new_current_div_height = current_div_height + 20;
+      var new_current_div_height = 20;
       current_div.style.height = new_current_div_height + "px";
-      //current_div.innerHTML += "<br>" + auth_content;
+      //current_div.innerHTML += "<br>" + text_content;
+    } else {
+      for (var x = 0; x < author_results.length; x++) {
+        var auth_content = author_results[x];
+        //console.log('auth content ' + auth_content);
+        var current_div_height = current_div.offsetHeight;
+        var new_current_div_height = current_div_height + 20;
+        current_div.style.height = new_current_div_height + "px";
+        //current_div.innerHTML += "<br>" + auth_content;
 
-      //console.log('gr book id ' + gr_book_id);
-      //console.log('this book id ' + author_results[x][0]);
+        //console.log('gr book id ' + gr_book_id);
+        //console.log('this book id ' + author_results[x][0]);
 
-      if (author_results[x][0] == gr_book_id) {
-        //console.log('ids match');
-        current_div.innerHTML +=
-          '<br><a href="' +
-          auth_content[3] +
-          '">' +
-          auth_content[1] +
-          "</a>" +
-          ", " +
-          auth_content[2] +
-          "  <-- on this book page right now"; // TODO: why isn't this working?
-      } else {
-        current_div.innerHTML +=
-          '<br><a href="' +
-          auth_content[3] +
-          '">' +
-          auth_content[1] +
-          "</a>" +
-          ", " +
-          auth_content[2];
+        if (author_results[x][0] == gr_book_id) {
+          //console.log('ids match');
+          current_div.innerHTML +=
+            '<br><a href="' +
+            auth_content[3] +
+            '">' +
+            auth_content[1] +
+            "</a>" +
+            ", " +
+            auth_content[2] +
+            "  <-- on this book page right now"; // TODO: why isn't this working?
+        } else {
+          current_div.innerHTML +=
+            '<br><a href="' +
+            auth_content[3] +
+            '">' +
+            auth_content[1] +
+            "</a>" +
+            ", " +
+            auth_content[2];
+        }
       }
     }
-  }
 
-  var addToGR_div = document.getElementById("addToGR");
-  //console.log('addtoGR_div ' + addToGR_div);
-  if (addToGR_div != null) {
-    //console.log("addToGR_div if not null: " + addToGR_div);
-    addToGR_div.onclick = function () {
-      console.log("link clicked");
-      addToGR(gr_book_id);
-    };
+    var addToGR_div = document.getElementById("addToGR");
+    //console.log('addtoGR_div ' + addToGR_div);
+    if (addToGR_div != null) {
+      //console.log("addToGR_div if not null: " + addToGR_div);
+      addToGR_div.onclick = function () {
+        console.log("link clicked");
+        addToGR(gr_book_id);
+      };
+    }
   }
 }
 
@@ -562,73 +567,75 @@ function addToGR(gr_book_id) {
 function returnResults(gr_to_read_array) {
   //console.log("gr array in return results ");
 
-  // for (var i = 0; i < gr_to_read_array.length; i++) {
-  //     console.log(JSON.stringify(gr_to_read_array[i], null, 4));
-  // }
+  var barCheck = document.getElementById("gr_ext_result");
+  console.log("barCheck", barCheck);
 
-  //console.log('book alike ' + books.innerHTML);
-  for (var i = 0; i < books.length; i++) {
-    var title_row = books[i].getElementsByClassName("field title")[0];
+  if (barCheck == null) {
+    //console.log('book alike ' + books.innerHTML);
+    for (var i = 0; i < books.length; i++) {
+      var title_row = books[i].getElementsByClassName("field title")[0];
 
-    //console.log('i ' + i);
+      //console.log('i ' + i);
 
-    var book_obj = gr_to_read_array.filter((obj) => {
-      return obj.pos_on_page === i;
-    });
+      var book_obj = gr_to_read_array.filter((obj) => {
+        return obj.pos_on_page === i;
+      });
 
-    //console.log('book obj' + book_obj);
-    //console.log('book obj' + JSON.stringify(book_obj, null, 4));
+      //console.log('book obj' + book_obj);
+      //console.log('book obj' + JSON.stringify(book_obj, null, 4));
 
-    book_obj = book_obj[0]; // strips brackets and make pure object
+      book_obj = book_obj[0]; // strips brackets and make pure object
 
-    //console.log('book obj avail ' + book_obj.e_available);
-    //console.log('book obj author ' + book_obj.author);
+      //console.log('book obj avail ' + book_obj.e_available);
+      //console.log('book obj author ' + book_obj.author);
 
-    var e_text_contents;
+      var e_text_contents;
 
-    if (book_obj.e_available === true) {
-      e_text_contents = "Ebook \u2705";
-    } else if (book_obj.e_available === false) {
-      e_text_contents =
-        "Ebook \u23F8 " +
-        book_obj.e_pplWaiting +
-        " people, est " +
-        book_obj.e_estWaitDays +
-        " days";
-    } else {
-      e_text_contents = "Ebook \u274C";
+      if (book_obj.e_available === true) {
+        e_text_contents = "Ebook \u2705";
+      } else if (book_obj.e_available === false) {
+        e_text_contents =
+          "Ebook \u23F8 " +
+          book_obj.e_pplWaiting +
+          " people, est " +
+          book_obj.e_estWaitDays +
+          " days";
+      } else {
+        e_text_contents = "Ebook \u274C";
+      }
+
+      var a_text_contents;
+      if (book_obj.a_available === true) {
+        a_text_contents = "Audiobook \u2705";
+      } else if (book_obj.a_available === false) {
+        a_text_contents =
+          "Audiobook \u23F8 " +
+          book_obj.a_pplWaiting +
+          " people, est " +
+          book_obj.a_estWaitDays +
+          " days";
+      } else {
+        a_text_contents = "Audiobook \u274C";
+      }
+
+      var br = document.createElement("br");
+      title_row.appendChild(br);
+
+      var e_textnode = document.createTextNode(e_text_contents);
+      var e_anchor = document.createElement("a");
+      e_anchor.appendChild(e_textnode);
+      e_anchor.href = book_obj.e_bookURL;
+      title_row.appendChild(e_anchor);
+
+      title_row.appendChild(br);
+
+      var a_textnode = document.createTextNode(a_text_contents);
+      var a_anchor = document.createElement("a");
+      a_anchor.setAttribute("id", "gr_ext_result");
+      a_anchor.appendChild(a_textnode);
+      a_anchor.href = book_obj.a_bookURL;
+      title_row.appendChild(a_anchor);
     }
-
-    var a_text_contents;
-    if (book_obj.a_available === true) {
-      a_text_contents = "Audiobook \u2705";
-    } else if (book_obj.a_available === false) {
-      a_text_contents =
-        "Audiobook \u23F8 " +
-        book_obj.a_pplWaiting +
-        " people, est " +
-        book_obj.a_estWaitDays +
-        " days";
-    } else {
-      a_text_contents = "Audiobook \u274C";
-    }
-
-    var br = document.createElement("br");
-    title_row.appendChild(br);
-
-    var e_textnode = document.createTextNode(e_text_contents);
-    var e_anchor = document.createElement("a");
-    e_anchor.appendChild(e_textnode);
-    e_anchor.href = book_obj.e_bookURL;
-    title_row.appendChild(e_anchor);
-
-    title_row.appendChild(br);
-
-    var a_textnode = document.createTextNode(a_text_contents);
-    var a_anchor = document.createElement("a");
-    a_anchor.appendChild(a_textnode);
-    a_anchor.href = book_obj.a_bookURL;
-    title_row.appendChild(a_anchor);
   }
 }
 
