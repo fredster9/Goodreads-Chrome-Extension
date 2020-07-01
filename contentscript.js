@@ -5,8 +5,6 @@ https://medium.com/@ssaitta13/recipal-a-first-chrome-extension-18c2848cf822
 https://github.com/rubenmv/extension-goodreads-ratings-for-amazon/blob/master/content.js
 https://github.com/ssaitta/ReciPal
 
-// TODO: will need to change manifest.json permissions to all overdrvive, not just NYPL
-
 
 */
 var website = "";
@@ -224,7 +222,7 @@ function textBar(author_results, gr_book_id) {
 }
 
 // checks goodreads to see if book is rated
-function checkMyShelf(gr_book_id, gr_author_id, gr_author_name) {
+function checkMyShelf(gr_book_id, gr_author_id, gr_author_name, gr_title) {
   var urlGoodreadsShelf =
     "https://www.goodreads.com/review/show_by_user_and_book.xml?book_id=" +
     gr_book_id +
@@ -247,8 +245,23 @@ function checkMyShelf(gr_book_id, gr_author_id, gr_author_name) {
 
       if (typeof gr_rating_check === "undefined" || "0") {
         console.log("either request failed (??) or not rated");
+
+        // TODO: run this properly through makeNYPLURL function
+        var url_base = "https://" + libURL + "/search/title?query=";
+
+        console.log("gr_title", gr_title);
+
+        // TODO: move to makeNYPLURL Function
+        gr_title = gr_title.replace("<![CDATA[", "").replace("]]>", "");
+
+        lib_url = url_base + gr_title + "&creator=" + gr_author_name;
+
         bar_text =
-          "Book not rated -> <a id='addToGR'>view on Goodreads'</a> or <a id='checkLib'>on your library site.</a>";
+          "Book not rated -> <a id='addToGR' href='" +
+          gr_book_url +
+          "'>view on Goodreads</a> or <a id='checkLib' href='" +
+          lib_url +
+          "'>search your library.</a>";
         //getAuthorIDnotread(gr_book_id);
         checkAuthor(gr_author_id, gr_author_name, gr_book_id);
       } else {
@@ -322,7 +335,7 @@ function getBookIDASIN(asin) {
               gr_book_url
           );
 
-          checkMyShelf(gr_book_id, gr_author_id, gr_author_name);
+          checkMyShelf(gr_book_id, gr_author_id, gr_author_name, gr_title);
         }
       );
     }
@@ -465,7 +478,7 @@ function getBookIDfromISBN(overdriveISBN) {
           // console.log('Goodreads author name: ' + gr_author_name);
           // console.log('Goodreads author ID: ' + gr_author_id);
 
-          checkMyShelf(gr_book_id, gr_author_id, gr_author_name);
+          checkMyShelf(gr_book_id, gr_author_id, gr_author_name, gr_title);
         }
       );
     }
