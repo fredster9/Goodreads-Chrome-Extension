@@ -2,14 +2,17 @@
 function save_options() {
   var libURL = document.getElementById("libURL").value;
   var gr_user_id = document.getElementById("grID").value;
+  var hooplaLibraryId = document.getElementById("hooplaLibraryId").value;
 
   console.log("libURL", libURL);
   console.log("grID", gr_user_id);
+  console.log("hooplaLibraryId", hooplaLibraryId);
 
   chrome.storage.sync.set(
     {
       libURL: libURL,
       gr_user_id: gr_user_id,
+      hooplaLibraryId: hooplaLibraryId,
     },
     function () {
       // Update status to let user know options were saved.
@@ -31,10 +34,12 @@ function restore_options() {
     {
       libURL: "nypl.overdrive.com",
       gr_user_id: "",
+      hooplaLibraryId: "",
     },
     function (items) {
       document.getElementById("libURL").value = items.libURL;
       document.getElementById("grID").value = items.gr_user_id;
+      document.getElementById("hooplaLibraryId").value = items.hooplaLibraryId || "";
     }
   );
 }

@@ -634,28 +634,58 @@ function returnResults(gr_to_read_array) {
       var br = document.createElement("br");
       title_row.appendChild(br);
 
+      // Display OverDrive ebook
       var e_textnode = document.createTextNode(e_text_contents);
       var e_anchor = document.createElement("a");
       e_anchor.appendChild(e_textnode);
-      e_anchor.href = book_obj.e_bookURL;
+      if (book_obj.e_bookURL) {
+        e_anchor.href = book_obj.e_bookURL;
+      }
       title_row.appendChild(e_anchor);
 
       title_row.appendChild(br);
 
+      // Display OverDrive audiobook
       var a_textnode = document.createTextNode(a_text_contents);
       var a_anchor = document.createElement("a");
       a_anchor.setAttribute("id", "gr_ext_result");
       a_anchor.appendChild(a_textnode);
-      a_anchor.href = book_obj.a_bookURL;
+      if (book_obj.a_bookURL) {
+        a_anchor.href = book_obj.a_bookURL;
+      }
       title_row.appendChild(a_anchor);
+
+      // Display Hoopla results if available
+      if (book_obj.h_e_bookURL || book_obj.h_a_bookURL) {
+        title_row.appendChild(br);
+        
+        var hoopla_text = "Hoopla: ";
+        var hoopla_parts = [];
+        
+        if (book_obj.h_e_available === true && book_obj.h_e_bookURL) {
+          hoopla_parts.push('<a href="' + book_obj.h_e_bookURL + '">Ebook ✓</a>');
+        }
+        
+        if (book_obj.h_a_available === true && book_obj.h_a_bookURL) {
+          hoopla_parts.push('<a href="' + book_obj.h_a_bookURL + '">Audiobook ✓</a>');
+        }
+        
+        if (hoopla_parts.length > 0) {
+          hoopla_text += hoopla_parts.join(", ");
+          var hoopla_div = document.createElement("span");
+          hoopla_div.innerHTML = hoopla_text;
+          title_row.appendChild(hoopla_div);
+        }
+      }
     }
   }
 }
 
-function fetchNYPL(gr_to_read) {
+function fetchNYPL(gr_to_read, hooplaLibraryId) {
   //console.log('in fetchNYPL');
 
   var loop_length = gr_to_read.length;
+  var completed_requests = 0;
   //console.log('loop_length' + loop_length);
 
   for (var i = 0; i < gr_to_read.length; i++) {
@@ -666,23 +696,47 @@ function fetchNYPL(gr_to_read) {
 
     //console.log('book data pre loop ' + book_data);
 
+    // Fetch OverDrive results
     chrome.runtime.sendMessage(
       {
-        contentScriptQuery: "queryNPL",
+        contentScriptQuery: "queryNYPL",
         url: urlNYPL,
         book_data_short: book_data,
       },
       (data) => {
         //console.log(" in data part of fetchHTML");
         //console.log('gr_to_read_obj returned' + JSON.stringify(data, null, 4));
-        gr_to_read_array.push(data);
-        //console.log('array in for loop' + gr_to_read_array);
+        
+        // Check Hoopla if library ID is provided
+        if (hooplaLibraryId && hooplaLibraryId.length > 0) {
+          chrome.runtime.sendMessage(
+            {
+              contentScriptQuery: "queryHoopla",
+              book_data_short: data,
+              hooplaLibraryId: hooplaLibraryId,
+            },
+            (hooplaData) => {
+              // Merge Hoopla data into the result
+              Object.assign(data, hooplaData);
+              gr_to_read_array.push(data);
+              completed_requests++;
+              //console.log('array in for loop' + gr_to_read_array);
 
-        //console.log('gr array outside for loop' + gr_to_read_array);
-        //console.log('gr_to_read_array.length' + gr_to_read_array.length);
-        if (gr_to_read_array.length >= loop_length) {
-          //console.log('we\'re getting the fuck out of here');
-          returnResults(gr_to_read_array);
+              //console.log('gr array outside for loop' + gr_to_read_array);
+              //console.log('gr_to_read_array.length' + gr_to_read_array.length);
+              if (completed_requests >= loop_length) {
+                //console.log('we\'re getting the fuck out of here');
+                returnResults(gr_to_read_array);
+              }
+            }
+          );
+        } else {
+          // No Hoopla library ID, just use OverDrive results
+          gr_to_read_array.push(data);
+          completed_requests++;
+          if (completed_requests >= loop_length) {
+            returnResults(gr_to_read_array);
+          }
         }
       }
     );
@@ -696,11 +750,12 @@ function makeurlNYPL(gr_to_read) {
 
   creds = [];
 
-  chrome.storage.sync.get(["libURL", "gr_user_id"], function (items) {
-    creds = [items.libURL, items.gr_user_id];
+  chrome.storage.sync.get(["libURL", "gr_user_id", "hooplaLibraryId"], function (items) {
+    creds = [items.libURL, items.gr_user_id, items.hooplaLibraryId];
     console.log("stored creds:", creds);
     libURL = creds[0]; // setting global
     gr_user_id = creds[1];
+    var hooplaLibraryId = creds[2] || "";
 
     // check if populated or not
     if (libURL.length < 1 || gr_user_id.length < 1) {
@@ -713,6 +768,7 @@ function makeurlNYPL(gr_to_read) {
     //var nypl_url_base = "https://nypl.overdrive.com/search/title?query="; // https://nypl.overdrive.com/search/title?query=speedboat&creator=renata+adler
     var url_base = "https://" + libURL + "/search/title?query=";
     console.log("url_base:", url_base);
+    console.log("hooplaLibraryId:", hooplaLibraryId);
 
     for (var i = 0; i < gr_to_read.length; i++) {
       //console.log('gr_to_read loop, pos ' + i); //+ ' : ' + gr_to_read[i]);
@@ -733,21 +789,34 @@ function makeurlNYPL(gr_to_read) {
       gr_to_read[i].push(lib_url);
     }
 
-    asyncFetch(gr_to_read);
+    asyncFetch(gr_to_read, hooplaLibraryId);
   });
 }
 
-async function asyncFetch(gr_to_read) {
-  gr_final = await fetchNYPL(gr_to_read); // await prob unnecessary
+async function asyncFetch(gr_to_read, hooplaLibraryId) {
+  gr_final = await fetchNYPL(gr_to_read, hooplaLibraryId); // await prob unnecessary
   // console.log('FINAL RESULTS' + gr_final);
 }
 
 ////
 
 function parseToRead() {
-  //console.log('in parseToRead');
+  console.log('in parseToRead');
   books = document.getElementsByClassName("bookalike review");
-  //console.log('book alike ' + books.innerHTML);
+  console.log('Found books: ' + books.length);
+
+  if (books.length === 0) {
+    console.log("No books found on page - may need to wait for page load");
+    // Try waiting a bit for dynamic content
+    setTimeout(function() {
+      books = document.getElementsByClassName("bookalike review");
+      console.log('After timeout, found books: ' + books.length);
+      if (books.length > 0) {
+        parseToRead();
+      }
+    }, 1000);
+    return;
+  }
 
   // var without_isbn = 0;
 
@@ -810,23 +879,26 @@ function getSite() {
   }
 }
 
-// Use the async API chrome.storage to retreive the url from the background script.
-chrome.storage.sync.get("url", (obj) => {
-  let url = obj.url;
+// Check the current page URL directly instead of relying on storage
+(function() {
+  let url = window.location.href;
   console.log("url:", url);
   if (
     (url.indexOf("amazon") > -1 && url.indexOf("ebook") > -1) ||
-    url.indexOf("dp") > -1
+    url.indexOf("/dp/") > -1 ||
+    url.indexOf("/gp/product/") > -1
   ) {
     website = "amazon";
   } else if (url.indexOf("overdrive") !== -1) {
     website = "overdrive";
-  } else if (url.indexOf("shelf=to-read") !== -1) {
+  } else if (url.indexOf("shelf=to-read") > -1 || url.indexOf("/review/list/") > -1) {
+    // Check for "to-read" shelf - URL might have shelf in query or be the default
+    // If it's a review/list page, check if it's the to-read shelf
     website = "goodreads-to-read";
-  } else if (url.indexOf("goodreads.com/book") !== -1) {
+  } else if (url.indexOf("goodreads.com/book/show/") > -1 || url.indexOf("goodreads.com/book/") > -1) {
     website = "goodreads-book";
   }
 
   console.log("initial get website = " + website);
   getSite();
-});
+})();
