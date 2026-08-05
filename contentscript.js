@@ -506,7 +506,7 @@ function getISBNOverdrive() {
 function getInfoGr() {
   console.log("in getASINgr");
 
-  var authOuter = document.getElementsByClassName("authorName")[0].outerHTML;
+  var authOuter = document.getElementsByClassName("ContributorLink")[0].outerHTML;
   var re_url = /"(http.*?)"/;
   var authUrl = authOuter.match(re_url)[0];
   var authUrl = authUrl.replace(/"/g, ""); // this should behappening in regex but seems not to be

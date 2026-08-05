@@ -116,7 +116,134 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     //   oauthTime(addBookID);
     //
     // QUERY
-  } else if (requestQuery.includes("query") === true) {
+  } else if (requestQuery && requestQuery.includes("queryHoopla") === true) {
+    // Hoopla API query
+    console.log("in queryHoopla");
+    var book_data_short = request.book_data_short;
+    var hooplaLibraryId = request.hooplaLibraryId;
+
+    if (!hooplaLibraryId || hooplaLibraryId.length < 1) {
+      console.log("No Hoopla library ID provided");
+      sendResponse(book_data_short);
+      return true;
+    }
+
+    // Extract title and author from book data
+    // book_data_short is an object from OverDrive processing, or array from Goodreads
+    var title, author;
+    if (Array.isArray(book_data_short)) {
+      title = book_data_short[2]; // title is at index 2
+      author = book_data_short[1]; // author is at index 1
+    } else {
+      // It's an object from OverDrive processing
+      title = book_data_short.title || "";
+      author = book_data_short.author || "";
+    }
+
+    // Clean title (strip subtitles, etc.)
+    var cleanTitle = title.split("(")[0].split(":")[0].trim();
+    // Clean author (if format is "last, first", just use last name)
+    var cleanAuthor = author.split(",")[0].trim();
+
+    // Hoopla API search endpoint
+    var hooplaUrl = "https://api.hoopladigital.com/api/v1/libraries/" +
+                    encodeURIComponent(hooplaLibraryId) +
+                    "/search?term=" + encodeURIComponent(cleanTitle) +
+                    "&author=" + encodeURIComponent(cleanAuthor) +
+                    "&limit=10";
+
+    console.log("Hoopla search URL: " + hooplaUrl);
+
+    fetch(hooplaUrl)
+      .then((response) => {
+        if (!response.ok) {
+          console.log("Hoopla API error: " + response.status);
+          return null;
+        }
+        return response.json();
+      })
+      .then(function (data) {
+        if (!data) {
+          sendResponse(book_data_short);
+          return;
+        }
+
+        console.log("Hoopla API response:", data);
+
+        // Look for matching title/author in results
+        var hooplaResult = null;
+        if (data.found > 0 && data.titles && data.titles.length > 0) {
+          // Try to find best match
+          for (var i = 0; i < data.titles.length; i++) {
+            var item = data.titles[i];
+            var itemTitle = (item.title || "").toLowerCase();
+            var itemAuthor = (item.artist || item.author || "").toLowerCase();
+
+            // Fuzzy match - check if title and author are similar
+            if (itemTitle.includes(cleanTitle.toLowerCase()) ||
+                cleanTitle.toLowerCase().includes(itemTitle)) {
+              if (!cleanAuthor || itemAuthor.includes(cleanAuthor.toLowerCase()) ||
+                  cleanAuthor.toLowerCase().includes(itemAuthor)) {
+                hooplaResult = item;
+                break;
+              }
+            }
+          }
+
+          // If no exact match found, use first result
+          if (!hooplaResult && data.titles.length > 0) {
+            hooplaResult = data.titles[0];
+          }
+        }
+
+        if (hooplaResult) {
+          console.log("Hoopla match found:", hooplaResult);
+
+          // Check available formats
+          var formats = hooplaResult.formats || [];
+          var hasAudiobook = false;
+          var hasEbook = false;
+
+          for (var f = 0; f < formats.length; f++) {
+            var formatName = (formats[f].name || "").toLowerCase();
+            if (formatName.includes("audiobook") || formatName.includes("audio")) {
+              hasAudiobook = true;
+            }
+            if (formatName.includes("ebook") || formatName.includes("epub") ||
+                formatName.includes("pdf") || formatName.includes("kindle")) {
+              hasEbook = true;
+            }
+          }
+
+          // Hoopla items are typically always available (no holds/waiting)
+          var hooplaBaseUrl = "https://www.hoopladigital.com/title/";
+          var hooplaTitleUrl = hooplaBaseUrl + hooplaResult.titleId;
+
+          if (hasAudiobook) {
+            book_data_short.h_a_bookURL = hooplaTitleUrl;
+            book_data_short.h_a_available = true; // Hoopla items are typically available
+            book_data_short.h_a_pplWaiting = 0;
+            book_data_short.h_a_estWaitDays = 0;
+          }
+
+          if (hasEbook) {
+            book_data_short.h_e_bookURL = hooplaTitleUrl;
+            book_data_short.h_e_available = true;
+            book_data_short.h_e_pplWaiting = 0;
+            book_data_short.h_e_estWaitDays = 0;
+          }
+        } else {
+          console.log("No Hoopla match found for: " + cleanTitle + " by " + cleanAuthor);
+        }
+
+        sendResponse(book_data_short);
+      })
+      .catch((error) => {
+        console.error("Hoopla API error:", error);
+        sendResponse(book_data_short);
+      });
+    return true; // this makes it async
+  } else if (requestQuery && requestQuery.includes("query") === true) {
     // not sure why doesnt' work with above code
     console.log("in queryNYPL");
     //console.log('book data: ' + request.book_data_short);
@@ -273,133 +400,6 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
       })
       .then((data) => sendResponse(data))
       .catch((error) => console.error(error));
-    return true; // this makes it async
-  } else if (requestQuery.includes("queryHoopla") === true) {
-    // Hoopla API query
-    console.log("in queryHoopla");
-    var book_data_short = request.book_data_short;
-    var hooplaLibraryId = request.hooplaLibraryId;
-
-    if (!hooplaLibraryId || hooplaLibraryId.length < 1) {
-      console.log("No Hoopla library ID provided");
-      sendResponse(book_data_short);
-      return true;
-    }
-
-    // Extract title and author from book data
-    // book_data_short is an object from OverDrive processing, or array from Goodreads
-    var title, author;
-    if (Array.isArray(book_data_short)) {
-      title = book_data_short[2]; // title is at index 2
-      author = book_data_short[1]; // author is at index 1
-    } else {
-      // It's an object from OverDrive processing
-      title = book_data_short.title || "";
-      author = book_data_short.author || "";
-    }
-
-    // Clean title (strip subtitles, etc.)
-    var cleanTitle = title.split("(")[0].split(":")[0].trim();
-    // Clean author (if format is "last, first", just use last name)
-    var cleanAuthor = author.split(",")[0].trim();
-
-    // Hoopla API search endpoint
-    var hooplaUrl = "https://api.hoopladigital.com/api/v1/libraries/" +
-                    encodeURIComponent(hooplaLibraryId) +
-                    "/search?term=" + encodeURIComponent(cleanTitle) +
-                    "&author=" + encodeURIComponent(cleanAuthor) +
-                    "&limit=10";
-
-    console.log("Hoopla search URL: " + hooplaUrl);
-
-    fetch(hooplaUrl)
-      .then((response) => {
-        if (!response.ok) {
-          console.log("Hoopla API error: " + response.status);
-          return null;
-        }
-        return response.json();
-      })
-      .then(function (data) {
-        if (!data) {
-          sendResponse(book_data_short);
-          return;
-        }
-
-        console.log("Hoopla API response:", data);
-
-        // Look for matching title/author in results
-        var hooplaResult = null;
-        if (data.found > 0 && data.titles && data.titles.length > 0) {
-          // Try to find best match
-          for (var i = 0; i < data.titles.length; i++) {
-            var item = data.titles[i];
-            var itemTitle = (item.title || "").toLowerCase();
-            var itemAuthor = (item.artist || item.author || "").toLowerCase();
-
-            // Fuzzy match - check if title and author are similar
-            if (itemTitle.includes(cleanTitle.toLowerCase()) ||
-                cleanTitle.toLowerCase().includes(itemTitle)) {
-              if (!cleanAuthor || itemAuthor.includes(cleanAuthor.toLowerCase()) ||
-                  cleanAuthor.toLowerCase().includes(itemAuthor)) {
-                hooplaResult = item;
-                break;
-              }
-            }
-          }
-
-          // If no exact match found, use first result
-          if (!hooplaResult && data.titles.length > 0) {
-            hooplaResult = data.titles[0];
-          }
-        }
-
-        if (hooplaResult) {
-          console.log("Hoopla match found:", hooplaResult);
-
-          // Check available formats
-          var formats = hooplaResult.formats || [];
-          var hasAudiobook = false;
-          var hasEbook = false;
-
-          for (var f = 0; f < formats.length; f++) {
-            var formatName = (formats[f].name || "").toLowerCase();
-            if (formatName.includes("audiobook") || formatName.includes("audio")) {
-              hasAudiobook = true;
-            }
-            if (formatName.includes("ebook") || formatName.includes("epub") ||
-                formatName.includes("pdf") || formatName.includes("kindle")) {
-              hasEbook = true;
-            }
-          }
-
-          // Hoopla items are typically always available (no holds/waiting)
-          var hooplaBaseUrl = "https://www.hoopladigital.com/title/";
-          var hooplaTitleUrl = hooplaBaseUrl + hooplaResult.titleId;
-
-          if (hasAudiobook) {
-            book_data_short.h_a_bookURL = hooplaTitleUrl;
-            book_data_short.h_a_available = true; // Hoopla items are typically available
-            book_data_short.h_a_pplWaiting = 0;
-            book_data_short.h_a_estWaitDays = 0;
-          }
-
-          if (hasEbook) {
-            book_data_short.h_e_bookURL = hooplaTitleUrl;
-            book_data_short.h_e_available = true;
-            book_data_short.h_e_pplWaiting = 0;
-            book_data_short.h_e_estWaitDays = 0;
-          }
-        } else {
-          console.log("No Hoopla match found for: " + cleanTitle + " by " + cleanAuthor);
-        }
-
-        sendResponse(book_data_short);
-      })
-      .catch((error) => {
-        console.error("Hoopla API error:", error);
-        sendResponse(book_data_short);
-      });
     return true; // this makes it async
   }
 });
