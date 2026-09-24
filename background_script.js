@@ -1,5 +1,51 @@
 var book_result_url;
 
+// Spotify Client Credentials (app-only auth, no user login) - catalog reads only.
+// Client ID/Secret are entered on the options page and read from chrome.storage.sync,
+// not hardcoded here.
+var spotifyTokenCache = null; // { token, expiresAt }
+
+function getSpotifyCreds() {
+  return new Promise((resolve) => {
+    chrome.storage.sync.get(["spotifyClientId", "spotifyClientSecret"], function (items) {
+      resolve({ clientId: items.spotifyClientId, clientSecret: items.spotifyClientSecret });
+    });
+  });
+}
+
+function getSpotifyToken() {
+  if (spotifyTokenCache && spotifyTokenCache.expiresAt > Date.now()) {
+    return Promise.resolve(spotifyTokenCache.token);
+  }
+
+  return getSpotifyCreds().then((creds) => {
+    if (!creds.clientId || !creds.clientSecret) {
+      throw new Error("Spotify Client ID/Secret not set in options");
+    }
+
+    var basicAuth = btoa(creds.clientId + ":" + creds.clientSecret);
+    return fetch("https://accounts.spotify.com/api/token", {
+      method: "POST",
+      headers: {
+        Authorization: "Basic " + basicAuth,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: "grant_type=client_credentials",
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (!data.access_token) {
+          throw new Error("No access_token in Spotify token response");
+        }
+        spotifyTokenCache = {
+          token: data.access_token,
+          expiresAt: Date.now() + (data.expires_in - 60) * 1000, // refresh a minute early
+        };
+        return spotifyTokenCache.token;
+      });
+  });
+}
+
 // Injects contentscript.js into a tab, skipping restricted pages it can't run on
 function injectContentScript(tabId, tabUrl) {
   if (tabUrl && !tabUrl.startsWith("chrome://") && !tabUrl.startsWith("chrome-extension://") && !tabUrl.startsWith("about:")) {
@@ -240,6 +286,116 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
       })
       .catch((error) => {
         console.error("Hoopla API error:", error);
+        sendResponse(book_data_short);
+      });
+    return true; // this makes it async
+  } else if (requestQuery && requestQuery.includes("querySpotify") === true) {
+    // Spotify audiobook catalog search (Client Credentials flow, app-only, no user data)
+    console.log("in querySpotify");
+    var book_data_short = request.book_data_short;
+
+    var title, author;
+    if (Array.isArray(book_data_short)) {
+      title = book_data_short[2]; // title is at index 2
+      author = book_data_short[1]; // author is at index 1
+    } else {
+      title = book_data_short.title || "";
+      author = book_data_short.author || "";
+    }
+
+    var cleanTitle = title.split("(")[0].split(":")[0].trim();
+    var cleanAuthor = author.split(",")[0].trim();
+
+    getSpotifyToken()
+      .then((token) => {
+        var q = encodeURIComponent('"' + cleanTitle + '" ' + cleanAuthor);
+        var searchUrl = "https://api.spotify.com/v1/search?type=audiobook&limit=5&q=" + q;
+        return fetch(searchUrl, {
+          headers: { Authorization: "Bearer " + token },
+        });
+      })
+      .then((response) => {
+        if (!response.ok) {
+          console.log("Spotify API error: " + response.status);
+          return null;
+        }
+        return response.json();
+      })
+      .then(function (data) {
+        if (!data) {
+          sendResponse(book_data_short);
+          return;
+        }
+
+        // Spotify's audiobook catalog is full of cheap third-party "summary"/
+        // "study guide" spinoffs that contain the real title as a substring and
+        // often outrank the actual book, so a plain substring match isn't safe.
+        var SUMMARY_SPINOFF_TERMS = [
+          "summary",
+          "study guide",
+          "key points",
+          "key takeaways",
+          "workbook",
+          "companion to",
+          "analysis of",
+          "review of",
+        ];
+        function looksLikeSummarySpinoff(t) {
+          return SUMMARY_SPINOFF_TERMS.some((term) => t.includes(term));
+        }
+
+        var items = (data.audiobooks && data.audiobooks.items) || [];
+        var cleanTitleLower = cleanTitle.toLowerCase();
+        var cleanAuthorLower = cleanAuthor.toLowerCase();
+
+        var exactMatch = null;
+        var looseMatch = null;
+        var firstNonSpinoff = null;
+
+        for (var i = 0; i < items.length; i++) {
+          var item = items[i];
+          if (!item) continue;
+          var itemTitle = (item.name || "").toLowerCase();
+          var itemAuthors = (item.authors || [])
+            .map((a) => (a.name || "").toLowerCase())
+            .join(" ");
+          var authorOk = !cleanAuthor || itemAuthors.includes(cleanAuthorLower);
+          var isSpinoff = looksLikeSummarySpinoff(itemTitle);
+
+          if (itemTitle === cleanTitleLower && authorOk) {
+            exactMatch = item;
+            break;
+          }
+
+          if (
+            !looseMatch &&
+            authorOk &&
+            !isSpinoff &&
+            (itemTitle.includes(cleanTitleLower) || cleanTitleLower.includes(itemTitle))
+          ) {
+            looseMatch = item;
+          }
+
+          if (!firstNonSpinoff && !isSpinoff) {
+            firstNonSpinoff = item;
+          }
+        }
+
+        var spotifyResult = exactMatch || looseMatch || firstNonSpinoff || items[0] || null;
+
+        if (spotifyResult) {
+          console.log("Spotify match found:", spotifyResult);
+          book_data_short.sp_available = true;
+          book_data_short.sp_bookURL =
+            spotifyResult.external_urls && spotifyResult.external_urls.spotify;
+        } else {
+          console.log("No Spotify match found for: " + cleanTitle + " by " + cleanAuthor);
+        }
+
+        sendResponse(book_data_short);
+      })
+      .catch((error) => {
+        console.error("Spotify API error:", error);
         sendResponse(book_data_short);
       });
     return true; // this makes it async

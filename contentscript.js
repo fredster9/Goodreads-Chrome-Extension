@@ -677,6 +677,15 @@ function returnResults(gr_to_read_array) {
           title_row.appendChild(hoopla_div);
         }
       }
+
+      // Display Spotify audiobook result if available
+      if (book_obj.sp_available === true && book_obj.sp_bookURL) {
+        title_row.appendChild(br);
+        var spotify_div = document.createElement("span");
+        spotify_div.innerHTML =
+          'Spotify: <a href="' + book_obj.sp_bookURL + '">Audiobook ✓</a>';
+        title_row.appendChild(spotify_div);
+      }
     }
   }
 }
@@ -706,7 +715,25 @@ function fetchNYPL(gr_to_read, hooplaLibraryId) {
       (data) => {
         //console.log(" in data part of fetchHTML");
         //console.log('gr_to_read_obj returned' + JSON.stringify(data, null, 4));
-        
+
+        // Check Spotify for an audiobook, then push the fully-merged result
+        function checkSpotifyThenFinish(mergedData) {
+          chrome.runtime.sendMessage(
+            {
+              contentScriptQuery: "querySpotify",
+              book_data_short: mergedData,
+            },
+            (spotifyData) => {
+              Object.assign(mergedData, spotifyData);
+              gr_to_read_array.push(mergedData);
+              completed_requests++;
+              if (completed_requests >= loop_length) {
+                returnResults(gr_to_read_array);
+              }
+            }
+          );
+        }
+
         // Check Hoopla if library ID is provided
         if (hooplaLibraryId && hooplaLibraryId.length > 0) {
           chrome.runtime.sendMessage(
@@ -718,25 +745,12 @@ function fetchNYPL(gr_to_read, hooplaLibraryId) {
             (hooplaData) => {
               // Merge Hoopla data into the result
               Object.assign(data, hooplaData);
-              gr_to_read_array.push(data);
-              completed_requests++;
-              //console.log('array in for loop' + gr_to_read_array);
-
-              //console.log('gr array outside for loop' + gr_to_read_array);
-              //console.log('gr_to_read_array.length' + gr_to_read_array.length);
-              if (completed_requests >= loop_length) {
-                //console.log('we\'re getting the fuck out of here');
-                returnResults(gr_to_read_array);
-              }
+              checkSpotifyThenFinish(data);
             }
           );
         } else {
           // No Hoopla library ID, just use OverDrive results
-          gr_to_read_array.push(data);
-          completed_requests++;
-          if (completed_requests >= loop_length) {
-            returnResults(gr_to_read_array);
-          }
+          checkSpotifyThenFinish(data);
         }
       }
     );
