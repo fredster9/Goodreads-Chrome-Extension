@@ -490,9 +490,12 @@ function getBookIDfromISBN(overdriveISBN) {
 function getISBNOverdrive() {
   //console.log('in getISBNOverdrive');
 
-  let overdriveISBNelement = document.querySelectorAll(
-    "[aria-label^='ISBN']"
-  )[0].textContent;
+  let overdriveISBNelements = document.querySelectorAll("[aria-label^='ISBN']");
+  if (overdriveISBNelements.length === 0) {
+    console.log("No ISBN element found on this OverDrive page - not a book detail page");
+    return;
+  }
+  let overdriveISBNelement = overdriveISBNelements[0].textContent;
   //console.log('overdriveISBNelement ' + overdriveISBNelement);
   var numberPattern = /\d+/g;
   overdriveISBN = overdriveISBNelement.match(numberPattern);
@@ -903,7 +906,8 @@ function getSite() {
     url.indexOf("/gp/product/") > -1
   ) {
     website = "amazon";
-  } else if (url.indexOf("overdrive") !== -1) {
+  } else if (url.indexOf("overdrive") !== -1 && url.indexOf("/media/") > -1) {
+    // Only treat this as a book detail page, not the homepage/search/account pages
     website = "overdrive";
   } else if (url.indexOf("shelf=to-read") > -1 || url.indexOf("/review/list/") > -1) {
     // Check for "to-read" shelf - URL might have shelf in query or be the default
