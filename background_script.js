@@ -46,6 +46,34 @@ function getSpotifyToken() {
   });
 }
 
+// A to-read shelf page can trigger a search per book all at once, which blows
+// straight through Spotify's rate limit. Run Spotify requests one at a time,
+// spaced out, and retry once on a 429 (honoring Retry-After when present).
+var spotifyQueue = Promise.resolve();
+var SPOTIFY_MIN_GAP_MS = 300;
+
+function queueSpotifyTask(taskFn) {
+  var runPromise = spotifyQueue.then(taskFn, taskFn);
+  spotifyQueue = runPromise
+    .catch(() => {})
+    .then(() => new Promise((resolve) => setTimeout(resolve, SPOTIFY_MIN_GAP_MS)));
+  return runPromise;
+}
+
+function fetchSpotifyWithRetry(url, options, retriesLeft) {
+  return fetch(url, options).then((response) => {
+    if (response.status === 429 && retriesLeft > 0) {
+      var retryAfterHeader = response.headers.get("Retry-After");
+      var waitMs = retryAfterHeader ? parseInt(retryAfterHeader, 10) * 1000 : 1500;
+      console.log("Spotify rate limited (429), retrying in " + waitMs + "ms");
+      return new Promise((resolve) => setTimeout(resolve, waitMs)).then(() =>
+        fetchSpotifyWithRetry(url, options, retriesLeft - 1)
+      );
+    }
+    return response;
+  });
+}
+
 // Injects contentscript.js into a tab, skipping restricted pages it can't run on
 function injectContentScript(tabId, tabUrl) {
   if (tabUrl && !tabUrl.startsWith("chrome://") && !tabUrl.startsWith("chrome-extension://") && !tabUrl.startsWith("about:")) {
@@ -306,14 +334,17 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     var cleanTitle = title.split("(")[0].split(":")[0].trim();
     var cleanAuthor = author.split(",")[0].trim();
 
-    getSpotifyToken()
-      .then((token) => {
+    queueSpotifyTask(() =>
+      getSpotifyToken().then((token) => {
         var q = encodeURIComponent('"' + cleanTitle + '" ' + cleanAuthor);
         var searchUrl = "https://api.spotify.com/v1/search?type=audiobook&limit=5&q=" + q;
-        return fetch(searchUrl, {
-          headers: { Authorization: "Bearer " + token },
-        });
+        return fetchSpotifyWithRetry(
+          searchUrl,
+          { headers: { Authorization: "Bearer " + token } },
+          1
+        );
       })
+    )
       .then((response) => {
         if (!response.ok) {
           console.log("Spotify API error: " + response.status);
