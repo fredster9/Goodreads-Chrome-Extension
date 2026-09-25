@@ -681,16 +681,31 @@ function returnResults(gr_to_read_array) {
         }
       }
 
-      // Display Spotify audiobook result if available
-      if (book_obj.sp_available === true && book_obj.sp_bookURL) {
-        title_row.appendChild(br);
-        var spotify_div = document.createElement("span");
-        spotify_div.innerHTML =
-          'Spotify: <a href="' + book_obj.sp_bookURL + '">Audiobook ✓</a>';
-        title_row.appendChild(spotify_div);
-      }
+      // Display Spotify audiobook result if it already arrived (it's checked
+      // separately, without blocking this render - see appendSpotifyResult)
+      appendSpotifyResult(book_obj);
     }
   }
+}
+
+// Adds (or updates) just the Spotify line for one book, independent of the
+// main NYPL/Hoopla render above. Spotify is checked separately and may
+// resolve after returnResults() has already run, or even before it -
+// either order works since this only touches the one row for this book.
+function appendSpotifyResult(book_obj) {
+  if (book_obj.sp_available !== true || !book_obj.sp_bookURL) {
+    return;
+  }
+  var title_row = books[book_obj.pos_on_page].getElementsByClassName("field title")[0];
+  if (!title_row || title_row.querySelector(".gr_ext_spotify")) {
+    return; // row not rendered yet, or Spotify line already added
+  }
+  var br = document.createElement("br");
+  title_row.appendChild(br);
+  var spotify_div = document.createElement("span");
+  spotify_div.className = "gr_ext_spotify";
+  spotify_div.innerHTML = 'Spotify: <a href="' + book_obj.sp_bookURL + '">Audiobook ✓</a>';
+  title_row.appendChild(spotify_div);
 }
 
 function fetchNYPL(gr_to_read, hooplaLibraryId) {
@@ -719,22 +734,33 @@ function fetchNYPL(gr_to_read, hooplaLibraryId) {
         //console.log(" in data part of fetchHTML");
         //console.log('gr_to_read_obj returned' + JSON.stringify(data, null, 4));
 
-        // Check Spotify for an audiobook, then push the fully-merged result
-        function checkSpotifyThenFinish(mergedData) {
+        // Spotify is checked separately and does NOT block the render below -
+        // it's slower now (serialized/rate-limit-aware) and shouldn't be able
+        // to hold up NYPL/Hoopla results just because it's still working.
+        function checkSpotify(mergedData) {
           chrome.runtime.sendMessage(
             {
               contentScriptQuery: "querySpotify",
               book_data_short: mergedData,
             },
             (spotifyData) => {
-              Object.assign(mergedData, spotifyData);
-              gr_to_read_array.push(mergedData);
-              completed_requests++;
-              if (completed_requests >= loop_length) {
-                returnResults(gr_to_read_array);
+              if (chrome.runtime.lastError) {
+                console.log("Spotify check did not complete: " + chrome.runtime.lastError.message);
+                return;
               }
+              Object.assign(mergedData, spotifyData);
+              appendSpotifyResult(mergedData);
             }
           );
+        }
+
+        function finish(mergedData) {
+          checkSpotify(mergedData);
+          gr_to_read_array.push(mergedData);
+          completed_requests++;
+          if (completed_requests >= loop_length) {
+            returnResults(gr_to_read_array);
+          }
         }
 
         // Check Hoopla if library ID is provided
@@ -748,12 +774,12 @@ function fetchNYPL(gr_to_read, hooplaLibraryId) {
             (hooplaData) => {
               // Merge Hoopla data into the result
               Object.assign(data, hooplaData);
-              checkSpotifyThenFinish(data);
+              finish(data);
             }
           );
         } else {
           // No Hoopla library ID, just use OverDrive results
-          checkSpotifyThenFinish(data);
+          finish(data);
         }
       }
     );
